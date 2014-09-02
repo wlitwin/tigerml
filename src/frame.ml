@@ -10,6 +10,21 @@ type formal = location
 
 type access = location
 
+type register = string
+
+let tempMap: (register, Temp.temp) Hashtbl.t =
+    let sym = Hashtbl.create 10 in
+    sym
+;;
+
+let procEntryExit1 frame stm =
+    T.EXP (T.CONST 0) 
+;;
+
+let procEntryExit2 frame instr =
+    []
+;;
+
 type frame = 
     { label: Temp.label;
       view_shift: unit;
@@ -19,6 +34,10 @@ type frame =
 
 type frag = STRING of Temp.label * string
           | FUNCTION of Tree.stm * frame
+
+let addfragment frag =
+    ()
+;;
 
 let newFrame label escapes =
     (* Make a list of all the formals *)

@@ -9,7 +9,7 @@ let () =
     let input = 
         if Array.length Sys.argv > 1 then (
             ErrorMsg.fileName := Sys.argv.(1);
-            open_in Sys.argv.(1)
+            open_in Sys.argv.(0)
         ) else (
             ErrorMsg.fileName := "stdin";
             stdin

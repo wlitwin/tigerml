@@ -6,6 +6,10 @@
 type frame
 type access
 
+type register
+
+val tempMap: (register, Temp.temp) Hashtbl.t
+
 type frag = STRING of Temp.label * string
           | FUNCTION of Tree.stm * frame
 
@@ -15,6 +19,8 @@ val wordsize : int
 val exp : access -> Tree.exp -> Tree.exp
 
 val procEntryExit1 : frame * Tree.stm -> Tree.stm
+val procEntryExit2 : frame * Assem.instr list -> Assem.instr list
+(*val procEntryExit3 : frame * Assem.instr list -> Assem.instr list*)
 
             (* func name    escape list *)
 val newFrame : Temp.label -> bool list -> frame
@@ -22,4 +28,5 @@ val name : frame -> Temp.label
 val formals : frame -> access list
 val allocLocal : frame -> bool -> access
 val externalCall : string * Tree.exp list -> Tree.exp
+(* TODO - Does this belong here, or in Translate? *)
 val addfragment : frag -> unit

@@ -17,7 +17,7 @@ val fieldVar : exp -> (Symbol.symbol * Types.ty) list -> Symbol.symbol -> exp
 val subscriptVar : exp -> exp -> exp
 
 val procEntryExit : level -> exp -> unit
-val getResult : unit -> Frame_x86.frag list
+val getResult : unit -> Frame.frag list
 
 val intExp : int -> exp
 val nilExp : unit -> exp
