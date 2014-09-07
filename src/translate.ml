@@ -4,33 +4,33 @@ type exp = Ex of Tree.exp
          | Nx of Tree.stm
          | Cx of (Temp.label * Temp.label -> Tree.stm)
 
-type level = { prev: level option; frame: Frame_x86.frame; uniq: unit ref }
+type level = { prev: level option; frame: Frame.frame; uniq: unit ref }
 
-type access = level * Frame_x86.access
+type access = level * Frame.access
 
 let outermost : level = { prev = None; 
-                          frame = Frame_x86.newFrame (Temp.newlabel ()) []; 
+                          frame = Frame.newFrame (Temp.newlabel ()) []; 
                           uniq = ref () }
 
-let frag_list : Frame_x86.frag list ref = ref []
+let frag_list : Frame.frag list ref = ref []
 
 let addFragment frag =
     frag_list := frag :: !frag_list
 ;;
 
-let getResult () : Frame_x86.frag list =
+let getResult () : Frame.frag list =
     !frag_list
 ;;
 
 let formals (lev : level) : access list =
-    let frmls = Frame_x86.formals lev.frame in
+    let frmls = Frame.formals lev.frame in
     (* TODO - If some functions don't need the static link update this *)
     (* Need to remove the one we added in newLevel *)
     List.tl (List.map (fun frml -> (lev, frml)) frmls)
 ;;
 
 let allocLocal lev escape =
-    let access = Frame_x86.allocLocal lev.frame escape in
+    let access = Frame.allocLocal lev.frame escape in
     (lev, access)
 ;;
 
@@ -38,7 +38,7 @@ let newLevel lev lab formals =
     (* Add new formal parameter that represents the static link
      * this parameter always escapes *)
     let formals = true :: formals in
-    let frame = Frame_x86.newFrame lab formals in
+    let frame = Frame.newFrame lab formals in
     { prev = Some lev; frame; uniq = ref () }
 ;;
 
@@ -86,23 +86,23 @@ let procEntryExit level exp =
 
 (* Translation functions *)
 let simpleVar (varlvl, faccess) curlevel : exp =
-    (* If we're at the same level we can use Frame_x86.fp *) 
+    (* If we're at the same level we can use Frame.fp *) 
     (* If not, we have to calculate where it is via static links *)
     if varlvl.uniq == curlevel.uniq then    
-        Ex (Frame_x86.exp faccess (T.TEMP Frame_x86.fp))
+        Ex (Frame.exp faccess (T.TEMP Frame.fp))
     else (
         (* Create nested MEM's *)
         let rec generate_mems acc texp lvl =
             if lvl.uniq == varlvl.uniq then (
-                Frame_x86.exp faccess texp  
+                Frame.exp faccess texp  
             ) else (
-                let sloc = List.hd (Frame_x86.formals lvl.frame) in
-                let texp = Frame_x86.exp acc texp in 
+                let sloc = List.hd (Frame.formals lvl.frame) in
+                let texp = Frame.exp acc texp in 
                 generate_mems sloc texp lvl
             )
         in
-        let sloc = List.hd (Frame_x86.formals curlevel.frame) in
-        Ex (generate_mems sloc (T.TEMP Frame_x86.fp) curlevel)
+        let sloc = List.hd (Frame.formals curlevel.frame) in
+        Ex (generate_mems sloc (T.TEMP Frame.fp) curlevel)
     )
 ;;
 
@@ -112,7 +112,7 @@ let subscriptVar baseExp indexExp =
                         T.MEM (unEx baseExp), 
                         T.MEM (T.BINOP (T.MUL, 
                                         (unEx indexExp), 
-                                        T.CONST Frame_x86.wordsize)))))
+                                        T.CONST Frame.wordsize)))))
 ;;
 
 let fieldVar recExp flst fname =
@@ -126,7 +126,7 @@ let fieldVar recExp flst fname =
     (* TODO - Check if record is nil *)
     Ex (T.MEM (T.BINOP (T.PLUS, 
                         T.MEM (unEx recExp), 
-                        T.CONST (fieldOffset * Frame_x86.wordsize))))
+                        T.CONST (fieldOffset * Frame.wordsize))))
 ;;
 
 let intExp num =
@@ -139,7 +139,7 @@ let nilExp () =
 
 let strExp str =
     let str_lbl = Temp.newlabel () in
-    addFragment (Frame_x86.STRING (str_lbl, str));
+    addFragment (Frame.STRING (str_lbl, str));
     Ex (T.NAME str_lbl)
 ;;
 
@@ -187,15 +187,15 @@ let recordExp fields =
     let (_, initExps) = List.fold_left
         (fun (off, lst) fexp ->
             let fexp = unEx fexp in
-            let init = T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP r, T.CONST (off*Frame_x86.wordsize))), 
+            let init = T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP r, T.CONST (off*Frame.wordsize))), 
                                fexp) 
             in
-            (off + Frame_x86.wordsize, init :: lst)
+            (off + Frame.wordsize, init :: lst)
         ) (0, []) fields
     in
     Ex (T.ESEQ (
         T.seq 
-            ((T.MOVE (T.TEMP r, Frame_x86.externalCall ("malloc", [T.CONST (flen*Frame_x86.wordsize)])))
+            ((T.MOVE (T.TEMP r, Frame.externalCall ("malloc", [T.CONST (flen*Frame.wordsize)])))
             ::
             initExps), T.TEMP r))
 ;;
@@ -225,7 +225,7 @@ let breakExp lbl =
 ;;
 
 let arrayExp size init =
-    Ex (Frame_x86.externalCall ("initArray", [unEx size; unEx init]))
+    Ex (Frame.externalCall ("initArray", [unEx size; unEx init]))
 ;;
 
 (* lof - level of called function *)

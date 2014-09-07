@@ -3,6 +3,7 @@ open Tree
 open Canon
 open Assem
 open Graph
+open Codegen
 
 let () =
     ErrorMsg.reset ();

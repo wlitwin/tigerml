@@ -17,11 +17,11 @@ let tempMap: (register, Temp.temp) Hashtbl.t =
     sym
 ;;
 
-let procEntryExit1 frame stm =
+let procEntryExit1 (frame, stm) =
     T.EXP (T.CONST 0) 
 ;;
 
-let procEntryExit2 frame instr =
+let procEntryExit2 (frame, instr) =
     []
 ;;
 
