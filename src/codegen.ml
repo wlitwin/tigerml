@@ -2,7 +2,16 @@ module A = Assem
 module S = Symbol
 module T = Tree
 
-let codegen frame (stm : Tree.stm) : Assem.instr list =
+module type Codegen = 
+    functor (F : Frame.Frame) ->
+sig
+    val codegen : F.frame -> Tree.stm -> Assem.instr list
+end
+
+module Make : Codegen = functor (F : Frame.Frame) ->
+struct
+
+let codegen (frame : F.frame) (stm : Tree.stm) : Assem.instr list =
     let ( $ ) a b c = b (a c)
     and ( $! ) a b = a b in
     let stmlist = let open Canon in
@@ -93,3 +102,5 @@ let codegen frame (stm : Tree.stm) : Assem.instr list =
     List.iter munchStm stmlist;
     List.rev !ilist
 ;;
+
+end

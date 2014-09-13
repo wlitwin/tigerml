@@ -1,3 +1,5 @@
+module Frame_x86 : Frame.Frame = struct
+
 module T = Tree
 
 type location = InReg of Temp.temp | InFrame of int
@@ -12,6 +14,16 @@ type access = location
 
 type register = string
 
+type frame = 
+    { label: Temp.label;
+      view_shift: unit;
+      locals: access list ref;
+      local_offset: int ref; (* Becomes more negative *)
+      formals: formal list }
+
+type frag = STRING of Temp.label * string
+          | FUNCTION of Tree.stm * frame
+
 let tempMap: (register, Temp.temp) Hashtbl.t =
     let sym = Hashtbl.create 10 in
     sym
@@ -24,16 +36,6 @@ let procEntryExit1 (frame, stm) =
 let procEntryExit2 (frame, instr) =
     []
 ;;
-
-type frame = 
-    { label: Temp.label;
-      view_shift: unit;
-      locals: access list ref;
-      local_offset: int ref; (* Becomes more negative *)
-      formals: formal list }
-
-type frag = STRING of Temp.label * string
-          | FUNCTION of Tree.stm * frame
 
 let addfragment frag =
     ()
@@ -92,3 +94,5 @@ let exp access texp : Tree.exp =
 let externalCall (s, args) =
     T.CALL (T.NAME (Temp.namedlabel s), args)
 ;;
+
+end

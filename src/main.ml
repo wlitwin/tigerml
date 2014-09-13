@@ -3,7 +3,11 @@ open Tree
 open Canon
 open Assem
 open Graph
-open Codegen
+
+module Translate_x86 = Translate.Make (Frame_x86.Frame_x86)
+module Code_x86 = Codegen.Make (Frame_x86.Frame_x86)
+module Env_x86 = Env.Make (Translate_x86)
+module Typecheck_x86 = Typecheck.Make (Env_x86) (Translate_x86)
 
 let () =
     ErrorMsg.reset ();
@@ -16,18 +20,20 @@ let () =
             stdin
         )
     in
+
     let lexbuf = Lexing.from_channel input in
     try
         let res = Tiger.program Lexer.token lexbuf in
         print_endline "Successfully parsed";
         (*Print_ast.print res;*)
         (* Find escapes *)
-        Findescape.findescape res;
+(*        Findescape.findescape res;
         (* Typecheck the program *)
         let (ir, typ) = Typecheck.transProg res in
         print_endline ("Final program type: " ^ (Types.str typ)); 
         Translate.print ir;
         print_endline "Successfully typechecked";
+        *)
         (* Linearize, basic blocks, and traces *)
         (*let linear = Canon.linearize (Tree.EXP ir) in
         let (blocks, exit_label) = Canon.basicBlocks linear in
@@ -45,7 +51,7 @@ let () =
                 (s_pos.pos_cnum - s_pos.pos_bol)
                 (e_pos.pos_cnum - e_pos.pos_bol)
                 (Lexing.lexeme lexbuf)
-    | Typecheck.Error -> ()
+    (*| Typecheck.Error -> ()*)
     ;
     close_in input;
     ()

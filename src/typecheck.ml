@@ -1,12 +1,42 @@
+open Env
+open Translate
+
+module type Typecheck = functor (E : Env) (T : Translate) ->
+sig
+
+type venv = E.enventry Symbol.table
+type tenv = Types.ty Symbol.table
+
+exception Error
+exception Impossible
+
+type expty = T.exp * Types.ty
+
+type pos = Absyn.pos
+
+val transProg : pos Absyn.exp -> expty
+
+val transVar : venv * tenv * T.level * Temp.label option * pos Absyn.var -> expty
+val transExp : venv * tenv * T.level * Temp.label option * pos Absyn.exp -> expty
+val transDec : venv * tenv * T.level * Temp.label option * pos Absyn.dec -> 
+               (venv * tenv * T.exp list)
+val transTy  :         tenv * pos Absyn.ty  -> Types.ty
+
+end
+
+module Make : 
+    functor (E : Env.Env) (T : Translate.Translate) -> Typecheck =
+    functor (Env : Env.Env) (T : Translate.Translate) ->
+struct
+
 module A = Absyn
 module S = Symbol
-module T = Translate
 module SS = Set.Make(String)
 
 type venv = Env.enventry S.table
 type tenv = Types.ty S.table
 
-type expty = Translate.exp * Types.ty
+type expty = T.exp * Types.ty
 
 type pos = Absyn.pos
 
@@ -425,3 +455,4 @@ let transProg (exp : pos Absyn.exp) : expty =
     transExp (venv, tenv, T.outermost, None, exp)
 ;;
 
+end

@@ -3,6 +3,9 @@
  * Number of locals allocated so far
  * label at which the functions code begins
  *)
+module type Frame = 
+sig
+
 type frame
 type access
 
@@ -30,3 +33,5 @@ val allocLocal : frame -> bool -> access
 val externalCall : string * Tree.exp list -> Tree.exp
 (* TODO - Does this belong here, or in Translate? *)
 val addfragment : frag -> unit
+
+end
