@@ -3,6 +3,8 @@ type escEnv = (depth * bool ref) Symbol.table
 
 open Absyn
 
+exception VarNotFound
+
 let rec traverseVar (env : escEnv) (d : depth) (var : pos Absyn.var) : unit =
     match var with
     | SimpleVar (sym, pos) -> 
@@ -12,7 +14,7 @@ let rec traverseVar (env : escEnv) (d : depth) (var : pos Absyn.var) : unit =
                 | None -> 
                         (* TODO - Rearrange things so this isn't possible *)
                         ErrorMsg.error pos ("Var " ^ (Symbol.name sym) ^ " does not exist in this scope");
-                        raise Typecheck.Error
+                        raise VarNotFound
             in
             if vdepth > d then vref := true
     | FieldVar (var, _, _) ->

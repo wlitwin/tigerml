@@ -293,8 +293,8 @@ let arithExp op expl expr =
 
 let condExp op expl expr =
     let open Absyn in
-    let expl = unNx expl
-    and expr = unEx expr in
+    let expl = unNx expl in
+    (*and expr = unEx expr in*)
     let blah = (fun (t, f) -> expl) in
     (* TODO - finish condExp *)
     match op with

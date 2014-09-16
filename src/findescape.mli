@@ -1,9 +1,3 @@
-open Typecheck
+val findescape: Absyn.pos Absyn.exp -> unit
 
-module type FindEscape =
-sig
-    val findescape: 'a Absyn.exp -> unit
-end
-
-module Make :
-    functor (T : Typecheck) -> FindEscape
+exception VarNotFound
