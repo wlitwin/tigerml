@@ -1,7 +1,3 @@
-module A = Assem
-module S = Symbol
-module T = Tree
-
 module type Codegen = 
     functor (F : Frame.Frame) ->
 sig
@@ -10,6 +6,10 @@ end
 
 module Make : Codegen = functor (F : Frame.Frame) ->
 struct
+
+module A = Assem
+module S = Symbol
+module T = Tree
 
 let codegen (frame : F.frame) (stm : Tree.stm) : Assem.instr list =
     let ( $ ) a b c = b (a c)

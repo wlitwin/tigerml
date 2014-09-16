@@ -1,5 +1,6 @@
-module type T = 
-    functor (F : Frame.Frame) (T : (module type of Translate.Make (F))) ->
+module type T = functor 
+    (F : Frame.Frame)
+    (T : (module type of Translate.Make (F))) ->
 sig
     type access = enventry
     and ty = Types.ty

@@ -1,6 +1,3 @@
-open Env
-open Translate
-
 module type T = 
     functor (F : Frame.Frame) 
             (T : (module type of Translate.Make (F)))
@@ -18,24 +15,23 @@ type expty = T.exp * Types.ty
 type pos = Absyn.pos
 
 val transProg : pos Absyn.exp -> expty
-
-val transVar : venv * tenv * T.level * Temp.label option * pos Absyn.var -> expty
-val transExp : venv * tenv * T.level * Temp.label option * pos Absyn.exp -> expty
-val transDec : venv * tenv * T.level * Temp.label option * pos Absyn.dec -> 
+val transTy   :        tenv * pos Absyn.ty  -> Types.ty
+val transVar  : venv * tenv * T.level * Temp.label option * pos Absyn.var -> expty
+val transExp  : venv * tenv * T.level * Temp.label option * pos Absyn.exp -> expty
+val transDec  : venv * tenv * T.level * Temp.label option * pos Absyn.dec -> 
                (venv * tenv * T.exp list)
-val transTy  :         tenv * pos Absyn.ty  -> Types.ty
 
 end
-
-module A = Absyn
-module S = Symbol
-module SS = Set.Make(String)
 
 module Make : T = 
     functor (F   : Frame.Frame)
             (T   : (module type of Translate.Make (F)))
             (Env : (module type of Env.Make (F) (T))) ->
 struct
+
+module A = Absyn
+module S = Symbol
+module SS = Set.Make(String)
 
 type venv = Env.enventry S.table
 type tenv = Types.ty S.table
