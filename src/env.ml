@@ -1,5 +1,5 @@
-(*module type Env = 
-    functor (F : Frame.Frame) (T : (module type of Translate.Translate (F))) ->
+module type T = 
+    functor (F : Frame.Frame) (T : (module type of Translate.Make (F))) ->
 sig
     type access = enventry
     and ty = Types.ty
@@ -17,9 +17,8 @@ sig
     val print_venv : venv -> unit
     val print_tenv : tenv -> unit
 end
-*)
 
-module Make : Env = functor (F : Frame.Frame) (T : module type of (Translate.Translate (F))) ->
+module Make : T = functor (F : Frame.Frame) (T : module type of Translate.Make (F)) ->
 struct
 
 type access = enventry

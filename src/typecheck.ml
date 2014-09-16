@@ -1,8 +1,10 @@
 open Env
 open Translate
 
-(*
-module type Typecheck = functor (E : Env) (T : Translate) ->
+module type T = 
+    functor (F : Frame.Frame) 
+            (T : (module type of Translate.Make (F)))
+            (E : (module type of Env.Make (F) (T))) ->
 sig
 
 type venv = E.enventry Symbol.table
@@ -24,13 +26,15 @@ val transDec : venv * tenv * T.level * Temp.label option * pos Absyn.dec ->
 val transTy  :         tenv * pos Absyn.ty  -> Types.ty
 
 end
-*)
 
 module A = Absyn
 module S = Symbol
 module SS = Set.Make(String)
 
-module Make (F : Frame.Frame) (T : module type of Translate.Make (F)) (Env : module type of Env.Make (T)) =
+module Make : T = 
+    functor (F   : Frame.Frame)
+            (T   : (module type of Translate.Make (F)))
+            (Env : (module type of Env.Make (F) (T))) ->
 struct
 
 type venv = Env.enventry S.table

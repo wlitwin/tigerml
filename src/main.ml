@@ -2,8 +2,11 @@
 module Env_x86 = Env.Make (Translate_x86)
 *)
 (*module Typecheck_x86 = Typecheck.Make (Env_x86) (Translate_x86)*)
-module Cx86 = Codegen.Make (Frame_x86.Frame_x86)
-module Tx86 = Translate.Make (Frame_x86.Frame_x86)
+module Fx86 = Frame_x86.Frame_x86
+module Cx86 = Codegen.Make (Fx86)
+module Tx86 = Translate.Make (Fx86)
+module Ex86 = Env.Make (Fx86) (Tx86)
+module Tyx86 = Typecheck.Make (Fx86) (Ex86) (Tx86)
 (*module Tx86 = Make.Translate (Frame_x86.Frame_x86)*)
 
 let () =
