@@ -28,8 +28,8 @@ let explode str =
 
 let implode lst =
     let len = List.length lst in
-    let str = String.create len in
-    List.iteri (fun idx chr -> str.[idx] <- chr) lst;
+    let str = Bytes.create len in
+    List.iteri (fun idx chr -> Bytes.set str idx  chr) lst;
     str
 ;; 
 

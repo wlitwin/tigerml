@@ -1,9 +1,8 @@
-module type Translate = 
+module type T =
+    functor (F : Frame.Frame) ->
 sig
     type level
     type access (* Not the same as Frame.access *)
-
-    type frag
 
     type exp
 
@@ -21,7 +20,7 @@ sig
     val subscriptVar : exp -> exp -> exp
 
     val procEntryExit : level -> exp -> unit
-    val getResult : unit -> frag list
+    val getResult : unit -> F.frag list
 
     val intExp : int -> exp
     val nilExp : unit -> exp
@@ -37,15 +36,10 @@ sig
 
     val arithExp : Absyn.oper -> exp -> exp -> exp
     val condExp : Absyn.oper -> exp -> exp -> exp
-end 
+end
 
-module Make : functor (F : Frame.Frame) -> Translate with type frag = F.frag =
-    functor (Frame : Frame.Frame) ->
+module Make : T = functor (Frame : Frame.Frame) ->
 struct
-
-module T = Tree
-
-type frag = Frame.frag
 
 type exp = Ex of Tree.exp
          | Nx of Tree.stm
@@ -88,6 +82,8 @@ let newLevel lev lab formals =
     let frame = Frame.newFrame lab formals in
     { prev = Some lev; frame; uniq = ref () }
 ;;
+
+module T = Tree
 
 let unEx (e : exp) : Tree.exp =
     match e with

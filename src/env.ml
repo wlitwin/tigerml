@@ -1,12 +1,10 @@
-module type Env =
+(*module type Env = 
+    functor (F : Frame.Frame) (T : (module type of Translate.Translate (F))) ->
 sig
-    type t_access
-    type t_level
-
     type access = enventry
     and ty = Types.ty
-    and enventry = VarEntry of t_access * ty
-                 | FunEntry of t_level * (* Level *)
+    and enventry = VarEntry of T.access * ty
+                 | FunEntry of T.level * (* Level *)
                                Temp.label * (* Label *)
                                ty list * (* Formals *)
                                ty (* Result *)
@@ -19,21 +17,15 @@ sig
     val print_venv : venv -> unit
     val print_tenv : tenv -> unit
 end
+*)
 
-module Make :
-    functor (T : Translate.Translate) -> 
-        Env with type t_access = T.access
-            with type t_level = T.level =
-    functor (Translate : Translate.Translate) ->
+module Make : Env = functor (F : Frame.Frame) (T : module type of (Translate.Translate (F))) ->
 struct
-
-    type t_access = Translate.access
-    type t_level = Translate.level
 
 type access = enventry
 and ty = Types.ty
-and enventry = VarEntry of Translate.access * ty
-             | FunEntry of Translate.level * (* Level *)
+and enventry = VarEntry of T.access * ty
+             | FunEntry of T.level * (* Level *)
                            Temp.label * (* Label *)
                            ty list * (* Formals *)
                            ty (* Result *)

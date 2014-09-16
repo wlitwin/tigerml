@@ -1,6 +1,7 @@
 open Env
 open Translate
 
+(*
 module type Typecheck = functor (E : Env) (T : Translate) ->
 sig
 
@@ -23,15 +24,14 @@ val transDec : venv * tenv * T.level * Temp.label option * pos Absyn.dec ->
 val transTy  :         tenv * pos Absyn.ty  -> Types.ty
 
 end
-
-module Make : 
-    functor (E : Env.Env) (T : Translate.Translate) -> Typecheck =
-    functor (Env : Env.Env) (T : Translate.Translate) ->
-struct
+*)
 
 module A = Absyn
 module S = Symbol
 module SS = Set.Make(String)
+
+module Make (F : Frame.Frame) (T : module type of Translate.Make (F)) (Env : module type of Env.Make (T)) =
+struct
 
 type venv = Env.enventry S.table
 type tenv = Types.ty S.table
@@ -346,7 +346,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
      (**************** Var Expression ****************)
      | A.VarExp (var, _) -> transVar (venv, tenv, level, loop, var)
 
-and transDec (venv, tenv, level, loop, dec : venv * tenv * Translate.level * Temp.label option * pos Absyn.dec) = 
+and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label option * pos Absyn.dec) = 
     match dec with
     | A.FunctionDec (lst, pos) ->
             (* Process the function "headers" first *)
@@ -392,7 +392,7 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * Translate.level * Tem
                               | None -> Types.UNIT
                     in
                     checkType tybody tyres "Function body does not match result type" pos;
-                    Translate.procEntryExit level bexp
+                    T.procEntryExit level bexp
                 ) lst
             in
             (venv, tenv, [])
@@ -412,7 +412,7 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * Translate.level * Tem
             let ent = Env.VarEntry (vaccess, tyexp) in
             let venv = S.enter (venv, sym, ent) in
             let (var, _) = transVar (venv, tenv, level, loop, A.SimpleVar (sym, pos)) in
-            let vexp = Translate.assignExp var vexp in
+            let vexp = T.assignExp var vexp in
             (venv, tenv, [vexp])
     | A.TypeDec (lst, pos) ->
             (* Process the type names first *)

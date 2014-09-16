@@ -1,13 +1,10 @@
-open Lexing
-open Tree
-open Canon
-open Assem
-open Graph
-
-module Translate_x86 = Translate.Make (Frame_x86.Frame_x86)
-module Code_x86 = Codegen.Make (Frame_x86.Frame_x86)
+(*
 module Env_x86 = Env.Make (Translate_x86)
-module Typecheck_x86 = Typecheck.Make (Env_x86) (Translate_x86)
+*)
+(*module Typecheck_x86 = Typecheck.Make (Env_x86) (Translate_x86)*)
+module Cx86 = Codegen.Make (Frame_x86.Frame_x86)
+module Tx86 = Translate.Make (Frame_x86.Frame_x86)
+(*module Tx86 = Make.Translate (Frame_x86.Frame_x86)*)
 
 let () =
     ErrorMsg.reset ();
@@ -23,8 +20,9 @@ let () =
 
     let lexbuf = Lexing.from_channel input in
     try
-        let res = Tiger.program Lexer.token lexbuf in
+        (*let res = Tiger.program Lexer.token lexbuf in
         print_endline "Successfully parsed";
+        *)
         (*Print_ast.print res;*)
         (* Find escapes *)
 (*        Findescape.findescape res;
@@ -43,6 +41,7 @@ let () =
     with
     | ErrorMsg.Error -> ()
     | Tiger.Error -> 
+            let open Lexing in
             let s_pos = Lexing.lexeme_start_p lexbuf in
             let e_pos = Lexing.lexeme_end_p lexbuf in
             Printf.eprintf "Parse error in %s\n  line: %d [%d:%d]\n  Token: %s\n" 
