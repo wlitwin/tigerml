@@ -1,4 +1,4 @@
-module Fx86 = Frame_x86.Frame_x86
+module Fx86 = Frame_x86
 module Cx86 = Codegen.Make (Fx86)
 module Tx86 = Translate.Make (Fx86)
 module Ex86 = Env.Make (Fx86) (Tx86)

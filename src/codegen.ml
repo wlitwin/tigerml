@@ -1,15 +1,16 @@
-module type Codegen = 
+module A = Assem
+module S = Symbol
+module T = Tree
+
+module type Codegen =
     functor (F : Frame.Frame) ->
 sig
     val codegen : F.frame -> Tree.stm -> Assem.instr list
 end
 
-module Make : Codegen = functor (F : Frame.Frame) ->
+module Make : Codegen =
+    functor (F : Frame.Frame) ->
 struct
-
-module A = Assem
-module S = Symbol
-module T = Tree
 
 let codegen (frame : F.frame) (stm : Tree.stm) : Assem.instr list =
     let ( $ ) a b c = b (a c)
@@ -19,7 +20,7 @@ let codegen (frame : F.frame) (stm : Tree.stm) : Assem.instr list =
     in
     let ilist = ref ([] : A.instr list) in
     let emit x = ilist := x :: !ilist in
-    let result gen = 
+    let result gen =
         let t = Temp.newtemp () in
         gen t; t
     in
@@ -67,7 +68,7 @@ let codegen (frame : F.frame) (stm : Tree.stm) : Assem.instr list =
                 result (fun r -> emit (A.OPER
                     {assem = "LOAD 'd0 <- M['s0 + " ^ itos i ^ "]\n";
                      src = [munchExp e1]; dst = [r]; jump = None }))
-        | T.MEM (T.BINOP (T.PLUS, T.CONST i, e1)) -> 
+        | T.MEM (T.BINOP (T.PLUS, T.CONST i, e1)) ->
                 result (fun r -> emit (A.OPER
                     {assem = "LOAD 'd0 <- M['s0 + " ^ itos i ^ "]\n";
                      src = [munchExp e1]; dst = [r]; jump = None }))

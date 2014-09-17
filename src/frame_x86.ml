@@ -1,5 +1,3 @@
-module Frame_x86 : Frame.Frame = struct
-
 module T = Tree
 
 type location = InReg of Temp.temp | InFrame of int
@@ -95,4 +93,3 @@ let externalCall (s, args) =
     T.CALL (T.NAME (Temp.namedlabel s), args)
 ;;
 
-end
