@@ -1,7 +1,9 @@
-type flowgraph_rec = {control: Graph.graph,
-                      def: Temp.temp list Graph.table;
-                      use: Temp.temp list Graph.table;
-                      ismove: bol Graph.table}
+module FGraph = Graph.Graph
+
+type flowgraph = {control: FGraph.graph;
+                  def: Temp.temp list FGraph.Table.table;
+                  use: Temp.temp list FGraph.Table.table;
+                  ismove: bool FGraph.Table.table}
 
 (* Note: Any "use" within the block is assumed to be BEFORE a "def"
  *       of the same variable. If there is a def(x) followed by use(x)

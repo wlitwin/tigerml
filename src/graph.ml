@@ -1,15 +1,36 @@
+module type Graph =
+sig
+type graph
+type node
 
+val nodes: graph -> node list
+val succ: node -> node list
+val pred: node -> node list
+val adj: node -> node list (* succ + pred *)
+val eq: node * node -> bool
+
+val newGraph: unit -> graph
+val newNode: graph -> node
+exception GraphEdge
+
+type node_edge = {from: node; to_: node}
+
+val mk_edge: node_edge -> unit
+val rm_edge: node_edge -> unit
+
+module Table : Table.Table
+
+val nodename: node -> string (* For debugging only *)
+end 
+
+module Graph : Graph = struct
 module D = Dynarray
 
 type node' = int
 type temp = Temp.temp
+
 type node_rec = {succ: node' list; pred: node' list}
 type noderep = NODE of node_rec
-type graph = noderep D.t
-type node = graph * node'
-type node_edge = {from: node; to_: node}
-
-type 'a table = (int, 'a) Hashtbl.t
 
 let emptyNode = NODE {succ=[]; pred=[]}
 let bogusNode = NODE {succ=[-1]; pred=[]}
@@ -18,6 +39,13 @@ let isBogus = function
     | NODE {succ = (-1 :: _); pred} -> true
     | _ -> false
 ;;
+
+type graph = noderep D.t
+type node = graph * node'
+type node_edge = {from: node; to_: node}
+
+module Table =
+    Table.Make (struct type key = node end)
 
 let eq ((_, a), (_, b)) = a = b
 
@@ -84,3 +112,4 @@ let mk_edge : node_edge -> unit = diddle_edge (fun (a, b) -> a :: b)
 let rm_edge : node_edge -> unit = diddle_edge delete
 
 let nodename (g, i : node) = "n" ^ (string_of_int i)
+end

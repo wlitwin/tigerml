@@ -1,3 +1,5 @@
+module type Graph =
+sig
 type graph
 type node
 
@@ -16,4 +18,9 @@ type node_edge = {from: node; to_: node}
 val mk_edge: node_edge -> unit
 val rm_edge: node_edge -> unit
 
+module Table : Table.Table
+
 val nodename: node -> string (* For debugging only *)
+end
+
+module Graph : Graph

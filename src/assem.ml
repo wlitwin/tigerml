@@ -12,7 +12,7 @@ type rec_label = { assem: string;
 
 type rec_move = { assem: string;
                   dst: temp;
-                  src:temp }
+                  src: temp }
 
 type instr = OPER of rec_oper
            | LABEL of rec_label

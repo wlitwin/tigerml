@@ -7,6 +7,11 @@ module Tyx86 = Typecheck.Make (Fx86) (Tx86) (Ex86)
 module RAx86 = Regalloc.Make(Fx86)
 (*module GCx86 = Color.Make(Fx86)*)
 
+open Table
+open Graph
+open Flowgraph
+open Makegraph
+
 let () =
     ErrorMsg.reset ();
     let input = 
