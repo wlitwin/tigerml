@@ -6,6 +6,8 @@ let wordsize = 4
 let fp = Temp.newtemp ()
 let rv = Temp.newtemp ()
 
+let registers = ["eax"; "ebx"; "ecx"; "edx"]
+
 type formal = location
 
 type access = location
@@ -33,6 +35,11 @@ let procEntryExit1 (frame, stm) =
 
 let procEntryExit2 (frame, instr) =
     []
+;;
+
+type pe3_rec = {prolog: string; body: Assem.instr list; epilog: string}
+let procEntryExit3 (frame, instrs) = 
+    { prolog = ""; body = []; epilog = "" }
 ;;
 
 let addfragment frag =

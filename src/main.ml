@@ -4,6 +4,9 @@ module Tx86 = Translate.Make (Fx86)
 module Ex86 = Env.Make (Fx86) (Tx86)
 module Tyx86 = Typecheck.Make (Fx86) (Tx86) (Ex86)
 
+module RAx86 = Regalloc.Make(Fx86)
+(*module GCx86 = Color.Make(Fx86)*)
+
 let () =
     ErrorMsg.reset ();
     let input = 
