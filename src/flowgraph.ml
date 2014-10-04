@@ -1,9 +1,9 @@
 module FGraph = Graph.Graph
 
 type flowgraph = {control: FGraph.graph;
-                  def: Temp.temp list FGraph.Table.table;
-                  use: Temp.temp list FGraph.Table.table;
-                  ismove: bool FGraph.Table.table}
+                  def: Temp.temp list FGraph.ITable.table;
+                  use: Temp.temp list FGraph.ITable.table;
+                  ismove: bool FGraph.ITable.table}
 
 (* Note: Any "use" within the block is assumed to be BEFORE a "def"
  *       of the same variable. If there is a def(x) followed by use(x)

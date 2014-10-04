@@ -18,7 +18,7 @@ type node_edge = {from: node; to_: node}
 val mk_edge: node_edge -> unit
 val rm_edge: node_edge -> unit
 
-module Table : Table.Table
+module ITable : (Table.ITable with type key := node)
 
 val nodename: node -> string (* For debugging only *)
 end 
@@ -44,8 +44,8 @@ type graph = noderep D.t
 type node = graph * node'
 type node_edge = {from: node; to_: node}
 
-module Table =
-    Table.Make (struct type key = node end)
+module ITable =
+    Table.MakeITable (struct type key = node end)
 
 let eq ((_, a), (_, b)) = a = b
 
