@@ -11,6 +11,7 @@ open Table
 open Graph
 open Flowgraph
 open Makegraph
+open Liveness
 
 let () =
     ErrorMsg.reset ();

@@ -16,6 +16,7 @@ sig
 
     val empty : unit -> 'a table
     val clone : 'a table -> 'a table
+    val union_exn : 'a table -> 'a table -> 'a table
     val enter : 'a table * key * 'a -> unit
     val look  : 'a table * key -> 'a option
     val print : (key -> string) -> ('a -> string) -> 'a table -> unit
@@ -47,6 +48,16 @@ struct
     let look (table, key) : 'a option =
         try Some (Hashtbl.find table key)
         with _ -> None
+    ;;
+
+    let union_exn tbl1 tbl2 =
+        let out = clone tbl1 in
+        Hashtbl.iter (fun k v -> 
+            match look (tbl1, k) with
+            | Some _ -> raise (Failure "Key exists")
+            | None -> Hashtbl.add out k v
+        ) tbl2;
+        out
     ;;
 
     let print (strKey : key -> string) (strVal : 'a -> string) (tbl : 'a table) : unit =

@@ -16,6 +16,7 @@ sig
 
     val empty : unit -> 'a table
     val clone : 'a table -> 'a table
+    val union_exn : 'a table -> 'a table -> 'a table
     val enter : 'a table * key * 'a -> unit
     val look  : 'a table * key -> 'a option
     val print : (key -> string) -> ('a -> string) -> 'a table -> unit
