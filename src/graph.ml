@@ -27,7 +27,6 @@ module Graph : Graph = struct
 module D = Dynarray
 
 type node' = int
-type temp = Temp.temp
 
 type node_rec = {succ: node' list; pred: node' list}
 type noderep = NODE of node_rec
