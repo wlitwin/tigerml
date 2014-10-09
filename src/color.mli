@@ -1,7 +1,9 @@
 module type T =
     functor (Frame : Frame.Frame) ->
 sig
-    type allocation = (Frame.register, Temp.temp) Hashtbl.t
+    module Graph = Graph.Graph
+
+    type allocation = Frame.register Temp.ITable.table
     type data = {interference : Liveness.igraph;
                  initial: allocation;
                  spillCost: Graph.node -> int;

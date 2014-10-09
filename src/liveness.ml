@@ -114,12 +114,12 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * (Flowgraph.FGrap
 
 let show (chan, igraph : out_channel * igraph) : unit =
     let nodes = Graph.nodes igraph.graph in
-    List.iter (fun n ->
+    List.iter (fun n -> (* For all nodes *)
         let temp = igraph.gtemp n in
         let str = Temp.makestring temp in
         Printf.fprintf chan "%s - " str;
         let interferenceNodes = Graph.adj n in 
-        List.iter (fun inode ->
+        List.iter (fun inode -> (* For all neighbors *)
             let istr = Temp.makestring (igraph.gtemp inode) in
             Printf.fprintf chan "%s " istr;
         ) interferenceNodes;

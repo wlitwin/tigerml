@@ -12,6 +12,7 @@ open Graph
 open Flowgraph
 open Makegraph
 open Liveness
+open Color
 
 let () =
     ErrorMsg.reset ();
