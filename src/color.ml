@@ -21,6 +21,9 @@ struct
                  spillCost: Graph.node -> int;
                  registers: Frame.register list}
 
+    type move = LG.node * LG.node
+    type color = int
+
     module LGI = Liveness.Graph.ITable
     module LG = Liveness.Graph
     module TI = Temp.ITable
@@ -30,6 +33,7 @@ struct
     module Sadj = Set.Make(struct type t = LG.node * LG.node let compare = compare end)
     module SN   = Set.Make(struct type t = LG.node           let compare = compare end)
     module SI   = Set.Make(struct type t = int               let compare = compare end)
+    module SMov = Set.Make(struct type t = move              let compare = compare end)
 
     let simplifyWorklist : LG.node list ref = ref []
     let freezeWorklist   : LG.node list ref = ref []
@@ -45,13 +49,10 @@ struct
      * activeMoves
      *)
 
-    type move = LG.node * LG.node
-    type color = int
-
     let adjSet   : Sadj.t ref = ref Sadj.empty
     let adjList  : SN.t TI.table = TI.empty ()
     let degree   : int LGI.table = LGI.empty ()
-    let moveList : move list LGI.table = LGI.empty ()
+    let moveList : SMov.t LGI.table = LGI.empty ()
     let alias : LG.node LGI.table = LGI.empty ()
     let color : color LGI.table = LGI.empty ()
 
@@ -65,8 +66,10 @@ struct
 
     let getTI  table value = get TI.look
     let getLGI table value = LGI.look
+    let degreeOf node = getLGI degree u
 
-    let build (igraph, liveOut, fgraph : Liveness.igraph * (Flowgraph.FGraph.node -> Temp.temp list) * Flowgraph.flowgraph) =
+    type build_param = Liveness.igraph * (Flowgraph.FGraph.node -> Temp.temp list) * Flowgraph.flowgraph
+    let build (igraph, liveOut, fgraph : build_param) =
         let open Liveness in
         let blocks = LG.nodes igraph.graph in
         (* forall blocks in program *)
@@ -78,9 +81,10 @@ struct
                 (* forall n in def(i) U use(i) *)
                 let nDefUse = union def(i) use(i) in
                 List.iter (fun n ->
-                    moveList[n] <- moveList[n] U {i}
+                    let moveListN = getLGI moveList n in
+                    LGI.enter (moveList, n, SMov.add moveListN i)
                 ) nDefUse;
-                worklistMoves <- worklistMoves U {i}
+                worklistMoves := SN.add !worklistMoves i
             );
             live <- live U def(i);
             forall d in def(i)
@@ -138,7 +142,7 @@ struct
     ;;
 
     let decrementDegree m =
-        let d = getLGI degree m in
+        let d = degreeOf m in
         LGI.enter (degree, m, d-1);
         if d = numColors then (
             enableMoves (SN.add (adjacent m) m);
@@ -160,49 +164,50 @@ struct
     ;;
 
     let coalesce () =
-        let m (=copy(x,y)) = first worklistMoves in
-        x <- GetAlias x
-        y <- GetAlias y
+        let (x, y) = SN.choose !worklistMoves in
+        let x = getAlias x
+        and y = getAlias y in
         let (u, v) =
-            if y in precolored then (y, x)
+            if SN.mem precolored y then (y, x)
             else (x, y)
         in
-        worklistMoves <- worklistMoves - {m}
+        worklistMoves := SN.remove !worklistMoves m;
         if (u = v) then (
-            coalescedMoves <- coalescedMoves U {m}
-            AddWorklist u
-        ) else if v in precolored || (u, v) in adjSet then (
-            constrainedMoves <- constrainedMoves U {m}
-            AddWorklist u
-            AddWorklist v
-        ) else if (u in precolored) && 
-                  (forall t in Adjacent v, OK(t, u)) &&
-                  (u not in precolored) && 
-                  (Conservative(Adjacent(u) U Adjacent(v))) 
+            coalescedMoves := SN.add !coalescedMoves m
+            addWorkList u
+        ) else if SN.mem precolored v || SN.mem adjSet (u, v) then (
+            constrainedMoves := SN.add !constrainedMoves m;
+            addWorkList u;
+            addWorkList v
+        ) else if (SN.mem precolored u) && 
+                  (SN.forall (fun t -> ok (t, u)) (adjacent v)) &&
+                  (not SN.mem precolored u) && 
+                  (conservative (SN.union (adjacent u) (adjacentv))) 
         then (
-            coalescedMoves <- coalescedMoves U {m}
-            Combine (u, v)
-            Addworklist u
+            coalescedMoves := SN.add !coalescedMoves m;
+            combine (u, v);
+            addWorkList u
         ) else (
-            activeMoves <- activeMoves U {m}
+            activeMoves := SN.add !activeMoves m
         )
     ;;
 
     let addWorkList u =
-        if (u not in precolored && not(MoveRelated(u)) && degree[u] < K) then (
-            freezeWorklist <- freezeWorklist - {u}
-            simplifyWorklist <- simplifyWorklist U {u}
-        )
+        if not SN.mem precolored u && 
+           not moveRelated u && 
+           degreeOf u < numColors 
+        then
+           moveEltFromTo freezeWorklist simplifyWorklist u
     ;;
 
     let ok (t, y) =
-        degree[t] < K || t in precolored || (t, r) in adjSet
+        (degreeOf t) < numColors || SN.mem precolored t || SN.mem adjSet (t, r)
     ;;
 
     let conservative nodes =
         let k = ref 0 in
         SN.iter (fun n ->
-            if getLGI degree n >= numColors then
+            if degreeOf n >= numColors then
                 k := k + 1
         ) nodes;
         !k < numColors
@@ -229,7 +234,7 @@ struct
             addEdge (t, u);
             decrementDegree t
         ) (adjacent v);
-        if (getLGI degree u) >= numColors && SN.mem !freezeWorklist u then
+        if (degreeOf u) >= numColors && SN.mem !freezeWorklist u then
             moveEltFromTo freezeWorklist spillWorklist u
     ;;
 
@@ -246,7 +251,7 @@ struct
                 else getAlias y
             in
             moveEltFromTo activeMoves frozenMoves m;
-            if SN.is_empty (nodeMoves v) && degree[v] < K then (
+            if SN.is_empty (nodeMoves v) && (degreeOf v) < numColors then (
                 moveEltFromTo freezeWorklist simplifyWorklist v 
             )
         ) (nodeMoves u)
@@ -266,23 +271,27 @@ struct
                 okColors := SI.add okColors k
             done;
             let okColors =
-                List.fold_left (fun w ->
-                    if getAlias w 
+                let colorUprecolored = SN.union !coloredNodes precolored in
+                List.fold_left (fun set w ->
+                    let aliasW = getAlias w in
+                    if SN.mem colorUprecolored aliasW then
+                        SN.remove set (getLGI color aliasW)
+                    else 
+                        set
                 ) !okColors (get adjList n)
             in
-            forall w in adjList[n]
-                if GetAlias(w) in (coloredNodes U precolored) then
-                    okColors <- okColors - (color[GetAlias(w)])
-            if okColors = [] then
-                spilledNodes <- spilledNodes U {n}
+            if SN.is_empty okColors then
+                spilledNodes := SN.add !spilledNodes n
             else (
-                coloredNodes <- coloredNodes U {n}
-                let c = first okColors
-                color[n] <- c
+                coloredNodes := SN.add !coloredNodes n;
+                let c = SN.choose okColors in
+                LGI.enter (color, n, c)
             )
-        done
-        forall n in coalescedNodes
-            color[n] <- color[GetAlias(n)]
+        done;
+        SN.iter (fun n -> 
+            let aliasN = getLGI color n in
+            LGI.enter (color, n, aliasN)
+        ) !coalescedNodes
     ;;
 
     let rewriteProgram () =
@@ -303,14 +312,16 @@ struct
         if not (Sadj.mem (u, v) !adjSet) && (u != v) then begin
             adjSet := Sadj.add (u, v) !adjSet;
             adjSet := Sadj.add (v, u) !adjSet;
-            (*
-            if (u != precolored) then begin
-
-            end
-            if (v != precolored) then begin
-
-            end
-        *)
+            if not SN.mem precolored u then (
+                let adjListU = getLGI adjList u in
+                LGI.enter (adjList, u, SN.add adjListU v);
+                LGI.enter (degree, u, (degreeOf u) + 1)
+            );
+            if not SN.mem precolored v then (
+                let adjListV = getLGI adjList v in
+                LGI.enter (adjList, v, SN.add adjListV u);
+                LGI.enter (degree, v, (degreeOf v) + 1)
+            )
         end
     ;;
 
