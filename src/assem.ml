@@ -35,6 +35,38 @@ let implode lst =
 
 let ord = Char.code
 
+let print_instr = function
+    | OPER {assem; dst; src; jump} ->
+          print_string assem;
+          print_string " dst: ";
+          List.iter (fun dst ->
+              print_string (Temp.makestring dst);
+              print_string ", "
+          ) dst;
+          print_string " src: ";
+          List.iter (fun src ->
+              print_string (Temp.makestring src);
+              print_string ", "
+          ) src;
+          (match jump with
+          | Some jumps ->
+                  print_string " jump: ";
+                  List.iter (fun jump -> 
+                    print_string (Symbol.name jump);
+                    print_string ", ";
+                  ) jumps;
+          | None -> ()
+          )
+          ;
+          print_endline ""
+    | LABEL {assem; lab} -> 
+            print_string (assem ^ " ");
+            print_endline ("LABEL: " ^ (Symbol.name lab))
+    | MOVE {assem; src; dst;} ->
+            print_endline (assem ^ " src: " ^ (Temp.makestring src) ^ 
+                                   " dst: " ^ (Temp.makestring dst))
+          
+
 let format saytemp instr =
     let speak (assem, dst, src, jump) =
         let saylab = Symbol.name in

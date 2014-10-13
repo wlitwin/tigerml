@@ -25,6 +25,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
             Print_tree.print stm;     
             let instr = Cx86.codegen frame stm in
             List.iter (fun i ->
+               (* Assem.print_instr i;*)
                 print_endline (Assem.format Fx86.string_of_temp i)
             ) instr;
     ) fragList

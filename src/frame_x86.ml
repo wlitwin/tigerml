@@ -43,8 +43,6 @@ let tempMap : register Temp.ITable.table =
 ;;
 
 let string_of_temp temp =
-    print_endline (Temp.makestring temp);
-    print_endline (Temp.makestring ebp);
     match Temp.ITable.look (tempMap, temp) with
     | Some str -> str
     | None -> Temp.makestring temp
