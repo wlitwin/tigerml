@@ -222,7 +222,7 @@ let ifExp c t e =
 
 let seqExp lst =
     let rec build_seq  = function
-        | [] -> failwith "Compile Error: seqExp impossible condition"
+        | [] -> T.CONST 0 (*failwith "Compile Error: seqExp impossible condition"*)
         | [exp] -> unEx exp
         | e1 :: tl -> T.ESEQ (unNx e1, build_seq tl)
     in

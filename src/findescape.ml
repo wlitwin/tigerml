@@ -13,7 +13,7 @@ let rec traverseVar (env : escEnv) (d : depth) (var : pos Absyn.var) : unit =
                 | Some value -> value
                 | None -> 
                         (* TODO - Rearrange things so this isn't possible *)
-                        ErrorMsg.error pos ("Var " ^ (Symbol.name sym) ^ " does not exist in this scope");
+                        ErrorMsg.error pos ("Var " ^ (Symbol.name sym) ^ " does not exist in this scope - 1");
                         raise VarNotFound
             in
             if vdepth > d then vref := true
@@ -68,7 +68,13 @@ and traverseDecs (env : escEnv) (d : depth) (dlst : pos Absyn.dec list) : escEnv
             let env = Symbol.enter (env, sym, (d, ref)) in
             traverseDecs env d tl
     | (FunctionDec (lst, _)) :: tl ->
-            List.iter (fun ((_, _, _, body), _) -> traverseExp env (d+1) body) lst;
+            List.iter (fun ((_, params, _, body), _ : pos fundec) -> 
+                let penv : escEnv = 
+                    List.fold_left (fun (env : escEnv) ((field, esc, _), _ : pos field) ->
+                        Symbol.enter (env, field, (d, esc));
+                    ) env params
+                in
+                traverseExp penv (d+1) body) lst;
             traverseDecs env d tl
     | _ :: tl -> 
             traverseDecs env d tl 

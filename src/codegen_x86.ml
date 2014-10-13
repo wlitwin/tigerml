@@ -48,7 +48,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | T.MOVE (e1, e2) ->
                 emit (A.MOVE {assem="mov `d0, `s0"; dst=munchExp e1; src=munchExp e2})
         | T.LABEL lab ->
-                emit (A.LABEL {assem = (S.name lab) ^ ":\n"; lab})
+                emit (A.LABEL {assem = (S.name lab) ^ ":"; lab})
         | T.JUMP (e1, [label]) ->
                 emit (A.OPER {assem="jmp `j0"; src=[]; dst=[]; jump=Some [label]})
         | T.EXP (T.CALL (e, args)) ->

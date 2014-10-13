@@ -114,7 +114,7 @@ let rec transVar (venv, tenv, level, loop, var) : expty = match var with
             | Some (Env.VarEntry (acc, ty)) -> 
                     (T.simpleVar acc level, actual_ty ty)
             | Some (Env.FunEntry _) -> impossible "SimpleVar as a FunEntry"
-            | None -> error pos ("Var " ^ (S.name sym) ^ " does not exist in this scope")
+            | None -> error pos ("Var " ^ (S.name sym) ^ " does not exist in this scope - 2")
             )
     | A.FieldVar (var, sym, pos) ->
             let (vexpty, varty) = transVar (venv, tenv, level, loop, var) in
