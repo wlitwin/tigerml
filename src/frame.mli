@@ -13,7 +13,7 @@ type register
 val fp : Temp.temp (* Frame pointer loction *)
 val rv : Temp.temp (* Return value location *)
 val registers : register list
-val tempMap: (register, Temp.temp) Hashtbl.t
+val tempMap: register Temp.ITable.table
 val wordsize : int
 
 val externalCall : string * Tree.exp list -> Tree.exp
@@ -29,6 +29,7 @@ val procEntryExit2 : frame * Assem.instr list -> Assem.instr list
 type pe3_rec = {prolog: string; body: Assem.instr list; epilog: string}
 val procEntryExit3 : frame * Assem.instr list -> pe3_rec
                      
+val string_of_temp : Temp.temp -> string
 
             (* func name    escape list *)
 val newFrame : Temp.label -> bool list -> frame

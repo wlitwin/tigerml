@@ -12,6 +12,10 @@ let make len value =
     { len; storage = Array.make len value }
 ;;
 
+let copy arr =
+    { len = arr.len; storage = Array.copy arr.storage }
+;;
+
 let length arr =
     arr.len
 ;;

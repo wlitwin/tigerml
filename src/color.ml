@@ -21,17 +21,22 @@ struct
                  spillCost: Graph.node -> int;
                  registers: Frame.register list}
 
-    type move = LG.node * LG.node
-    type color = int
-
     module LGI = Liveness.Graph.ITable
+    module FGI = Flowgraph.FGraph.ITable
+    module FG = Flowgraph.FGraph
     module LG = Liveness.Graph
     module TI = Temp.ITable
+
+    type move = LG.node * LG.node
+    type color = int
 
     let moveList : Temp.temp LGI.table = LGI.empty ()
 
     module Sadj = Set.Make(struct type t = LG.node * LG.node let compare = compare end)
     module SN   = Set.Make(struct type t = LG.node           let compare = compare end)
+    (*module SF   = Set.Make(struct type t = FG.node           let compare = compare end)*)
+    module SG   = Set.Make(struct type t = Graph.node        let compare = compare end)
+    module ST   = Set.Make(struct type t = Temp.temp         let compare = compare end)
     module SI   = Set.Make(struct type t = int               let compare = compare end)
     module SMov = Set.Make(struct type t = move              let compare = compare end)
 
@@ -42,6 +47,7 @@ struct
     let coloredNodes     : LG.node list ref = ref []
     let selectStack      : LG.node Stack.t = Stack.create ()
 
+    let worklistMoves = ref SG.empty
     (* coalescedMoves
      * constrainedMoves
      * frozenMoves
@@ -49,61 +55,101 @@ struct
      * activeMoves
      *)
 
+    (* TODO - fix *)
+    let precolored = SN.empty
+
     let adjSet   : Sadj.t ref = ref Sadj.empty
-    let adjList  : SN.t TI.table = TI.empty ()
+    let adjList  : SN.t LGI.table = LGI.empty ()
     let degree   : int LGI.table = LGI.empty ()
-    let moveList : SMov.t LGI.table = LGI.empty ()
+    let moveList : ST.t LGI.table = LGI.empty ()
     let alias : LG.node LGI.table = LGI.empty ()
     let color : color LGI.table = LGI.empty ()
 
+    (* Number of registers from frame modules *)
     let numColors = 4
 
-    let get func table value = 
-        match func (table, value) with
+    let some = function
         | Some s -> s
-        | None -> raise (Failure "Value not found")
+        | None -> raise (Failure "Value was None")
+    
+    let get (func : ('a * 'b) -> 'c option) (table : 'a) (value : 'b) : 'c = 
+        some (func (table, value))
     ;;
 
-    let getTI  table value = get TI.look
-    let getLGI table value = LGI.look
-    let degreeOf node = getLGI degree u
+    let getTI  = get TI.look
+    let getFGI = get FGI.look
+    let getLGI (tbl : 'a LGI.table) (idx : 'b) : 'a = get LGI.look tbl idx
+    let degreeOf node = getLGI degree node
+
+    let addEdge (u, v : LG.node * LG.node) =
+        if not (Sadj.mem (u, v) !adjSet) && (u != v) then begin
+            adjSet := Sadj.add (u, v) !adjSet;
+            adjSet := Sadj.add (v, u) !adjSet;
+            if not (SN.mem u precolored) then (
+                let adjListU : SN.t = getLGI adjList u in
+                LGI.enter (adjList, u, SN.add v adjListU);
+                LGI.enter (degree, u, (degreeOf u) + 1)
+            );
+            if not (SN.mem v precolored) then (
+                let adjListV : SN.t = getLGI adjList v in
+                LGI.enter (adjList, v, SN.add u adjListV);
+                LGI.enter (degree, v, (degreeOf v) + 1)
+            )
+        end
+    ;;
 
     type build_param = Liveness.igraph * (Flowgraph.FGraph.node -> Temp.temp list) * Flowgraph.flowgraph
     let build (igraph, liveOut, fgraph : build_param) =
         let open Liveness in
+        let open Flowgraph in
         let blocks = LG.nodes igraph.graph in
         (* forall blocks in program *)
         List.iter (fun block ->
-            let live = ref (liveOut block) in
+            let live = ref (ST.of_list (liveOut block)) in
             (* forall instructions(block) in reverse order *)
-            if isMoveInstruction(i) then (
-                live := live - use(i);
+            let useSet = ST.of_list (getFGI fgraph.use block)
+            and defSet = ST.of_list (getFGI fgraph.def block) in
+            if some (FGI.look (fgraph.ismove, block)) then (
+                live := ST.diff !live useSet;
                 (* forall n in def(i) U use(i) *)
-                let nDefUse = union def(i) use(i) in
-                List.iter (fun n ->
-                    let moveListN = getLGI moveList n in
-                    LGI.enter (moveList, n, SMov.add moveListN i)
+                let nDefUse = ST.union defSet useSet in
+                ST.iter (fun n_temp ->
+                    let n = igraph.tnode n_temp in
+                    let moveListN : ST.t = getLGI moveList n in
+                    LGI.enter (moveList, n, ST.add n_temp moveListN)
                 ) nDefUse;
-                worklistMoves := SN.add !worklistMoves i
+                worklistMoves := SG.add block !worklistMoves
             );
-            live <- live U def(i);
-            forall d in def(i)
-                forall l in live
-                    AddEdge (l, d)
-            live <- use(i) U (live - def(i))
+            live := ST.union !live defSet;
+            ST.iter (fun d_temp ->
+                let d = igraph.tnode d_temp in
+                ST.iter (fun l_temp ->
+                    let l = igraph.tnode l_temp in
+                    addEdge (l, d)
+                ) !live;
+            ) defSet;
+            live := ST.union useSet (ST.diff !live defSet);
         ) blocks;
     ;;
+
+    let nodeMoves n =
+        ST.diff (getTI moveList n) (ST.union !activeMoves !worklistMoves)
+    ;;
+
+    let moveRelated n =
+        not (SN.is_empty (nodeMoves n))
+    ;; 
 
     let makeWorklist initial =
         let copy = !initial in
         SN.iter (fun n ->
             initial := SN.remove n !initial; 
             if (getLGI degree n) >= numColors then
-                spillWorklist := SN.add !spillWorklist n
+                spillWorklist := SN.add n !spillWorklist
             else if moveRelated n then
-                freezeWorklist := SN.add !freezeWorklist n
+                freezeWorklist := SN.add n !freezeWorklist
             else 
-                simplifyWorklist := SN.add !simplifyWorklist n
+                simplifyWorklist := SN.add n !simplifyWorklist
         ) copy 
     ;;
 
@@ -116,21 +162,13 @@ struct
     ;;
 
     let moveEltFromTo set1 set2 elt =
-        set1 := SN.remove !set1 elt;
-        set2 := SN.add !set2 elt
+        set1 := SN.remove elt !set1;
+        set2 := SN.add elt !set2
     ;;
 
     let adjacent n =
         SN.diff (getTI adjList n) (SN.union (stackToSet selectStack) !coalescedNodes)
     ;;
-
-    let nodeMoves n =
-        SN.diff (getTI moveList n) (SN.union !activeMoves !worklistMoves)
-    ;;
-
-    let moveRelated n =
-        not SN.empty (nodeMoves n)
-    ;; 
 
     let simplify () =
         let n = SN.choose !simplifyWorklist in
@@ -300,29 +338,15 @@ struct
         (* In the porgram (instructions), insert a store after each definition of a
          * vi, a fetch before each use of vi. *)
         (* Put all the vi into a set newTemps *)
+        (*
         spilledNodes <- {}
         initial <- coloredNodes U coalescedNodes U newTemps
         coloredNodes <- {}
         coalescedNodes <- {}
+        *)
         (* Can be made faster by not throwing away all coalescedNodes.
          * Keep all the coalesces found before the first call to SelectSpill *)
-    ;;
-
-    let addEdge (u, v) =
-        if not (Sadj.mem (u, v) !adjSet) && (u != v) then begin
-            adjSet := Sadj.add (u, v) !adjSet;
-            adjSet := Sadj.add (v, u) !adjSet;
-            if not SN.mem precolored u then (
-                let adjListU = getLGI adjList u in
-                LGI.enter (adjList, u, SN.add adjListU v);
-                LGI.enter (degree, u, (degreeOf u) + 1)
-            );
-            if not SN.mem precolored v then (
-                let adjListV = getLGI adjList v in
-                LGI.enter (adjList, v, SN.add adjListV u);
-                LGI.enter (degree, v, (degreeOf v) + 1)
-            )
-        end
+        ()
     ;;
 
     (*

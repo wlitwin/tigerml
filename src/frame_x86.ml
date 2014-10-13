@@ -3,8 +3,15 @@ module T = Tree
 type location = InReg of Temp.temp | InFrame of int
 
 let wordsize = 4
-let fp = Temp.newtemp ()
-let rv = Temp.newtemp ()
+let eax = Temp.newtemp ()
+let ebx = Temp.newtemp ()
+let ecx = Temp.newtemp ()
+let edx = Temp.newtemp ()
+let esp = Temp.newtemp ()
+let ebp = Temp.newtemp ()
+
+let fp = ebp
+let rv = eax
 
 let registers = ["eax"; "ebx"; "ecx"; "edx"]
 
@@ -16,21 +23,42 @@ type register = string
 
 type frame = 
     { label: Temp.label;
-      view_shift: unit;
       locals: access list ref;
       local_offset: int ref; (* Becomes more negative *)
       formals: formal list }
 
+
 type frag = STRING of Temp.label * string
           | FUNCTION of Tree.stm * frame
 
-let tempMap: (register, Temp.temp) Hashtbl.t =
-    let sym = Hashtbl.create 10 in
+let tempMap : register Temp.ITable.table =
+    let sym = Temp.ITable.empty () in
+    Temp.ITable.enter (sym, eax, "eax");
+    Temp.ITable.enter (sym, ebx, "ebx");
+    Temp.ITable.enter (sym, ecx, "ecx");
+    Temp.ITable.enter (sym, edx, "edx");
+    Temp.ITable.enter (sym, ebp, "ebp");
+    Temp.ITable.enter (sym, esp, "esp");
     sym
 ;;
 
+let string_of_temp temp =
+    print_endline (Temp.makestring temp);
+    print_endline (Temp.makestring ebp);
+    match Temp.ITable.look (tempMap, temp) with
+    | Some str -> str
+    | None -> Temp.makestring temp
+;;
+
 let procEntryExit1 (frame, stm) =
-    T.EXP (T.CONST 0) 
+    T.seq ([
+        T.LABEL frame.label;
+        (* Save all registers *)
+        T.MOVE (T.TEMP ebp, T.TEMP esp);
+        (* Restore all registers, except eax *)
+    ] @ [stm])
+
+    (*T.EXP (T.CONST 0) *)
 ;;
 
 let procEntryExit2 (frame, instr) =
@@ -48,7 +76,7 @@ let addfragment frag =
 
 let newFrame label escapes =
     (* Make a list of all the formals *)
-    let num_reg_params = 4 in
+    let num_reg_params = 0 in (* Pass all parameters on the stack for now *)
     let rec build_formals spots offset acc = function
         | [] -> List.rev acc
         | esc :: tl ->
@@ -64,7 +92,6 @@ let newFrame label escapes =
         build_formals num_reg_params 0 [] escapes 
     in
     { label = Temp.newlabel ();
-      view_shift = ();
       locals = ref [];
       local_offset = ref 0;
       formals }

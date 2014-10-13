@@ -1,8 +1,8 @@
 module Fx86 = Frame_x86
-module Cx86 = Codegen.Make (Fx86)
+module Cx86 = Codegen_x86
 module Tx86 = Translate.Make (Fx86)
 module Ex86 = Env.Make (Fx86) (Tx86)
-module Tyx86 = Typecheck.Make (Fx86) (Tx86) (Ex86)
+module Sx86 = Semant.Make (Fx86) (Tx86) (Ex86)
 
 module RAx86 = Regalloc.Make(Fx86)
 (*module GCx86 = Color.Make(Fx86)*)
@@ -12,7 +12,23 @@ open Graph
 open Flowgraph
 open Makegraph
 open Liveness
-open Color
+(*open Color*)
+open Gcolor
+
+let genProgram (fragList : Fx86.frag list) : unit =
+    List.iter (fun frag ->
+        print_endline "---- TRANSLATING FRAGMENT ----";
+        match frag with
+        | Fx86.STRING (label, str) ->
+            print_endline ("STRING: " ^ (Symbol.name label) ^ " " ^ str)
+        | Fx86.FUNCTION (stm, frame) ->
+            Print_tree.print stm;     
+            let instr = Cx86.codegen frame stm in
+            List.iter (fun i ->
+                print_endline (Assem.format Fx86.string_of_temp i)
+            ) instr;
+    ) fragList
+;;
 
 let () =
     ErrorMsg.reset ();
@@ -34,10 +50,9 @@ let () =
         (* Find escapes *)
         Findescape.findescape res;
         (* Typecheck the program *)
-        let (ir, typ) = Tyx86.transProg res in
-        print_endline ("Final program type: " ^ (Types.str typ)); 
-        Tx86.print ir;
+        let fragments = Sx86.transProg res in
         print_endline "Successfully typechecked";
+        genProgram fragments;
         (* Linearize, basic blocks, and traces *)
         (*let linear = Canon.linearize (Tree.EXP ir) in
         let (blocks, exit_label) = Canon.basicBlocks linear in

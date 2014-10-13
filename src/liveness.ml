@@ -4,8 +4,8 @@ module TI = Temp.ITable
 module Graph = Graph.Graph
 
 type igraph = { graph: Graph.graph; (* Interference graph *)
-                tnode: Temp.temp -> Graph.node; (* Temps to the node *)
-                gtemp: Graph.node -> Temp.temp; (* Node to the temps *)
+                tnode: Graph.node TI.table; (* Temps to the node *)
+                gtemp: Temp.temp FGI.table; (* Node to the temps *)
                 moves: (Graph.node * Graph.node) list } (* List of move instructions, hint to register allocator, 
                                                                        if (n, m) is on the list try to assign them to the same regs *)
 
@@ -24,7 +24,7 @@ type liveMap = liveSet FG.ITable.table
 module SN = Set.Make(struct type t = FG.node let compare = compare end)
 module ST = Set.Make(struct type t = Temp.temp let compare = compare end)
 
-let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * (Flowgraph.FGraph.node -> Temp.temp list) =
+let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.table =
     (* Out function maps nodes to live-out temporaries *)  
     (* Initialize sets *)
     let open FG in
@@ -105,22 +105,19 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * (Flowgraph.FGrap
         (g, tempToNode, nodeToTemp)
     in
     let (graph, tnode, gtemp) = createIGraph () in
-    let tnode = fun temp -> some (TI.look (tnode, temp)) in
-    let gtemp = fun node -> some (FGI.look (gtemp, node)) in
-    let list_of_set set = ST.fold (fun elt lst -> elt :: lst) set [] in
     (* TODO populate the moves list *)
-    ({ graph; tnode; gtemp; moves = [] }, fun node -> list_of_set (some (FGI.look (liveOutSet, node))))
+    ({ graph; tnode; gtemp; moves = [] }, liveOutSet)
 ;;
 
 let show (chan, igraph : out_channel * igraph) : unit =
     let nodes = Graph.nodes igraph.graph in
     List.iter (fun n -> (* For all nodes *)
-        let temp = igraph.gtemp n in
+        let temp = FGI.look_exn igraph.gtemp n in
         let str = Temp.makestring temp in
         Printf.fprintf chan "%s - " str;
         let interferenceNodes = Graph.adj n in 
         List.iter (fun inode -> (* For all neighbors *)
-            let istr = Temp.makestring (igraph.gtemp inode) in
+            let istr = Temp.makestring (FGI.look_exn igraph.gtemp inode) in
             Printf.fprintf chan "%s " istr;
         ) interferenceNodes;
         Printf.fprintf chan "\n";

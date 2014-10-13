@@ -19,7 +19,11 @@ sig
     val union_exn : 'a table -> 'a table -> 'a table
     val enter : 'a table * key * 'a -> unit
     val look  : 'a table * key -> 'a option
+    val look_exn : 'a table -> key -> 'a
+    val iter : (key -> 'a -> unit) -> 'a table -> unit
     val print : (key -> string) -> ('a -> string) -> 'a table -> unit
+
+    exception KeyNotFound
 end
 
 module type KeyValue =
@@ -50,6 +54,12 @@ struct
         with _ -> None
     ;;
 
+    exception KeyNotFound
+    let look_exn table key : 'a =
+        try Hashtbl.find table key
+        with _ -> raise KeyNotFound
+    ;;
+
     let union_exn tbl1 tbl2 =
         let out = clone tbl1 in
         Hashtbl.iter (fun k v -> 
@@ -58,6 +68,10 @@ struct
             | None -> Hashtbl.add out k v
         ) tbl2;
         out
+    ;;
+
+    let iter f (table : 'a table) =
+        Hashtbl.iter f table
     ;;
 
     let print (strKey : key -> string) (strVal : 'a -> string) (tbl : 'a table) : unit =

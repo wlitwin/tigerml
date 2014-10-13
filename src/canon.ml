@@ -1,6 +1,12 @@
 module T = Tree
 
-let linearize stm =
+let linearize (stm0 : T.stm) : T.stm list =
+    let ( % ) x y = match (x, y) with
+        | (T.EXP (T.CONST _), z) -> z
+        | (z, T.EXP (T.CONST _)) -> z
+        | (z, w) -> T.SEQ (z, w)
+    in
+
     let rec commute = function
         | (T.EXP (T.CONST _), _) -> true
         | (_, T.NAME _) -> true
@@ -10,24 +16,19 @@ let linearize stm =
 
     let nop = T.EXP (T.CONST 0) in
 
-    let ( % ) x y = match (x, y) with
-        | (T.EXP (T.CONST _), x) -> x
-        | (x, T.EXP (T.CONST _)) -> x
-        | (x, y) -> T.SEQ (x, y)
-    in
-
     let rec reorder = function
         | (T.CALL _ as e) :: rest ->
                 let t = Temp.newtemp () in
-                reorder ((T.ESEQ (T.MOVE (T.TEMP t, e), T.TEMP t)) :: rest)
+                reorder (T.ESEQ (T.MOVE (T.TEMP t, e), T.TEMP t) :: rest)
         | a :: rest ->
                 let (stms, e) = do_exp a in
                 let (stms', el) = reorder rest in
                 if commute (stms', e) then
-                    (stms % stms', e :: el)
-                else
+                    ((stms % stms'), e :: el)
+                else begin
                     let t = Temp.newtemp () in
                     (stms % T.MOVE (T.TEMP t, e) % stms', (T.TEMP t) :: el)
+                end
         | [] -> (nop, [])
 
     and reorder_exp (el, build) =
@@ -36,10 +37,10 @@ let linearize stm =
 
     and reorder_stm (el, build) =
         let (stms, el') = reorder (el) in
-        stms % build (el')
+        stms % (build (el'))
 
     and do_stm = function
-        | T.SEQ (a, b) -> do_stm a % do_stm b
+        | T.SEQ (a, b) -> (do_stm a) % (do_stm b)
         | T.JUMP (e, labs) ->
                 let build_exp = function
                     | [e] -> T.JUMP (e, labs) | _ -> assert false
@@ -96,7 +97,7 @@ let linearize stm =
         | T.ESEQ (s, e) ->
                 let stms = do_stm s in
                 let (stms', e) = do_exp e in
-                (stms % stms', e)
+                ((stms % stms'), e)
         | T.CALL (e, el) ->
                 let build_exp = function
                     | (e :: el) -> T.CALL (e, el) | _ -> assert false
@@ -114,7 +115,7 @@ let linearize stm =
         | (s, l) -> s :: l
     in
 
-    linear (do_stm stm, [])
+    linear (do_stm stm0, [])
 ;;
 
 type block = T.stm list
@@ -128,14 +129,14 @@ let basicBlocks stms =
                             endblock (rest, s :: thisblock)
                     | ((T.CJUMP _ as s) :: rest, thisblock) ->
                             endblock (rest, s :: thisblock)
-                    | ((T.LABEL lab) :: _ as stms, thisblock) ->
+                    | (((T.LABEL lab) :: _ as stms), thisblock) ->
                             next (T.JUMP (T.NAME lab, [lab]) :: stms, thisblock)
                     | (s :: rest, thisblock) ->
                             next (rest, s :: thisblock)
                     | ([], thisblock) ->
                             next ([T.JUMP (T.NAME _done, [_done])], thisblock)
                 and endblock (stms, thisblock) =
-                    blocks (stms, List.rev (thisblock :: blist))
+                    blocks (stms, (List.rev thisblock) :: blist)
                 in
                 next (tail, [head])
         | ([], blist) -> List.rev blist
@@ -146,7 +147,7 @@ let basicBlocks stms =
 ;;
 
 let enterblock : (T.stm list * T.stm list Symbol.table) -> T.stm list Symbol.table = function
-    | ((T.LABEL s :: _ as b), table) -> Symbol.enter (table, s, b)
+    | ((T.LABEL s :: _ as b), table) -> Symbol.enter(table, s, b)
     | (_, table) -> table
 ;;
 
@@ -185,15 +186,15 @@ let rec trace = function
     | _ -> failwith "Internal compiler error"
 
 and getnext = function
-    | (table, (T.LABEL lab :: _ as b) :: rest) ->
+    | (table, ((T.LABEL lab) :: _ as b) :: rest) ->
             (match Symbol.look (table, lab) with
             | Some (_ :: _) -> trace (table, b, rest)
             | _ -> getnext (table, rest)
             )
     | (table, []) -> []
+    (*| (table, _) -> []*)
     | _ -> assert false
 ;;
-
 
 let traceSchedule (blocks, exit_label : T.stm list list * T.label) =
     let res : T.stm list =

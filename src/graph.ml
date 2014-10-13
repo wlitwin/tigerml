@@ -9,14 +9,18 @@ val pred: node -> node list
 val adj: node -> node list (* succ + pred *)
 val eq: node * node -> bool
 
+val numNodes: graph -> int
+
 val newGraph: unit -> graph
 val newNode: graph -> node
+val copy: graph -> graph
 exception GraphEdge
 
 type node_edge = {from: node; to_: node}
 
 val mk_edge: node_edge -> unit
 val rm_edge: node_edge -> unit
+val rm_node: node -> unit
 
 module ITable : (Table.ITable with type key := node)
 
@@ -43,10 +47,16 @@ type graph = noderep D.t
 type node = graph * node'
 type node_edge = {from: node; to_: node}
 
+let copy g =
+    D.copy g
+;;
+
 module ITable =
     Table.MakeITable (struct type key = node end)
 
 let eq ((_, a), (_, b)) = a = b
+
+let numNodes g = D.length g
 
 let augment (g: graph) (n: node') : node = (g, n)
 
@@ -109,6 +119,17 @@ let diddle_edge change (node : node_edge) : unit =
 
 let mk_edge : node_edge -> unit = diddle_edge (fun (a, b) -> a :: b)
 let rm_edge : node_edge -> unit = diddle_edge delete
+
+let rm_node node : unit =
+    let succs = succ node in
+    let preds = pred node in
+    List.iter (fun neighbor ->
+        rm_edge {from = node; to_ = neighbor}
+    ) succs;
+    List.iter (fun neighbor ->
+        rm_edge {from = neighbor; to_ = node}
+    ) preds;
+;;
 
 let nodename (g, i : node) = "n" ^ (string_of_int i)
 end

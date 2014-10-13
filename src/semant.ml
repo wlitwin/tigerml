@@ -14,7 +14,7 @@ type expty = T.exp * Types.ty
 
 type pos = Absyn.pos
 
-val transProg : pos Absyn.exp -> expty
+val transProg : pos Absyn.exp -> F.frag list
 val transTy   :        tenv * pos Absyn.ty  -> Types.ty
 val transVar  : venv * tenv * T.level * Temp.label option * pos Absyn.var -> expty
 val transExp  : venv * tenv * T.level * Temp.label option * pos Absyn.exp -> expty
@@ -449,10 +449,17 @@ and transTy (tenv, ty) =
             Types.ARRAY (ty, ref ())
 ;;
 
-let transProg (exp : pos Absyn.exp) : expty =
+let transProg (exp : pos Absyn.exp) : F.frag list =
     let venv = Env.base_venv ()
-    and tenv = Env.base_tenv () in
-    transExp (venv, tenv, T.outermost, None, exp)
+    and tenv = Env.base_tenv ()
+    and entry = Temp.newlabel () 
+    and exit  = Temp.newlabel () in
+    let firstLevel = T.newLevel T.outermost entry [] in
+    let (ir, typ) = transExp (venv, tenv, firstLevel, None, exp) in
+    print_endline ("Final program type: " ^ (Types.str typ)); 
+    T.print ir;
+    T.procEntryExit firstLevel ir;
+    T.getResult ();
 ;;
 
 end

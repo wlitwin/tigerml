@@ -1,6 +1,9 @@
 type label = Temp.label
 type size = int
 
+(* Mem on the left side of a mode is a store
+ * all other uses are fetch *)
+
 type stm = SEQ of stm * stm
          | LABEL of label
          | JUMP of exp * label list

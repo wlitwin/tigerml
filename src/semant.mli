@@ -13,7 +13,7 @@ exception Impossible
 type expty = T.exp * Types.ty
 type pos = Absyn.pos
 
-val transProg : pos Absyn.exp -> expty
+val transProg : pos Absyn.exp -> F.frag list
 val transTy   :        tenv * pos Absyn.ty  -> Types.ty
 val transVar  : venv * tenv * T.level * Temp.label option * pos Absyn.var -> expty
 val transExp  : venv * tenv * T.level * Temp.label option * pos Absyn.exp -> expty

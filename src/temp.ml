@@ -4,7 +4,7 @@ type label = Symbol.symbol
 module ITable : (Table.ITable with type key := temp) =
     Table.MakeITable (struct type key = temp end)
 
-let temps = ref 100
+let temps = ref 0
 
 let newtemp () = 
     let t = !temps in

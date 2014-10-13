@@ -123,8 +123,13 @@ let print exp =
     Print_tree.print (unNx exp)
 ;;
 
-let procEntryExit level exp =
-    ()
+let procEntryExit level body =
+    if (level.uniq == outermost.uniq) then
+        raise (Failure "Shouldn't be using outermost level")
+    ;
+    let body = T.MOVE (T.TEMP Frame.rv, unEx body) in
+    let result = Frame.procEntryExit1 (level.frame, body) in
+    addFragment (Frame.FUNCTION (result, level.frame))
 ;;
 
 (* Translation functions *)
@@ -216,12 +221,12 @@ let ifExp c t e =
 ;;
 
 let seqExp lst =
-    let rec build_seq = function
+    let rec build_seq  = function
         | [] -> failwith "Compile Error: seqExp impossible condition"
-        | [exp] -> unNx exp
-        | e1 :: tl -> T.SEQ (unNx e1, build_seq tl)
+        | [exp] -> unEx exp
+        | e1 :: tl -> T.ESEQ (unNx e1, build_seq tl)
     in
-    Nx (build_seq lst)
+    Ex (build_seq lst)
 ;;
 
 let recordExp fields = 
@@ -293,17 +298,18 @@ let arithExp op expl expr =
 
 let condExp op expl expr =
     let open Absyn in
-    let expl = unNx expl in
-    (*and expr = unEx expr in*)
-    let blah = (fun (t, f) -> expl) in
-    (* TODO - finish condExp *)
+    let expl = unEx expl
+    and expr = unEx expr in
+    let mkFun op = fun (t, f) -> 
+        T.CJUMP (op, expl, expr, t, f)
+    in
     match op with
-    | LtOp -> Cx blah
-    | LeOp -> Cx blah
-    | GtOp -> Cx blah
-    | GeOp -> Cx blah
-    | EqOp -> Cx blah
-    | NeqOp -> Cx blah
+    | LtOp -> Cx (mkFun T.LT)
+    | LeOp -> Cx (mkFun T.LE)
+    | GtOp -> Cx (mkFun T.GT)
+    | GeOp -> Cx (mkFun T.GE)
+    | EqOp -> Cx (mkFun T.EQ)
+    | NeqOp -> Cx (mkFun T.NE)
     | _ -> failwith "Compiler Error: wrong op used in condExp"
 ;;
 
