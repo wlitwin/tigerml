@@ -9,9 +9,6 @@ type igraph = { graph: Graph.graph; (* Interference graph *)
                 moves: (Graph.node * Graph.node) list } (* List of move instructions, hint to register allocator, 
                                                                        if (n, m) is on the list try to assign them to the same regs *)
 
-type liveSet = unit Temp.ITable.table * Temp.temp list
-type liveMap = liveSet FG.ITable.table
-
 (* If ismove for a node is true and def + use are the same, then it can be deleted *)
 
 (* 1.) At any non-move instruction that defines a variable 'a', where the live-out variables are
@@ -23,6 +20,9 @@ type liveMap = liveSet FG.ITable.table
 
 module SN = Set.Make(struct type t = FG.node let compare = compare end)
 module ST = Set.Make(struct type t = Temp.temp let compare = compare end)
+
+type liveSet = ST.t (*unit Temp.ITable.table * Temp.temp list*)
+type liveMap = liveSet FG.ITable.table
 
 let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.table =
     (* Out function maps nodes to live-out temporaries *)  
@@ -128,13 +128,15 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         List.iter (fun n ->
             (* TODO - check if it's a move and don't add interference for specific temporary *)
             let def = ST.of_list (FGI.look_exn fgraph.def n) in
-            let live = FGI.look_exn liveMap n in
+            let liveOut = FGI.look_exn liveOutSet n in
             ST.iter (fun d ->
                 let dn = getNode d in
+                let uses = FGI.look_exn fgraph.use dn in
                 ST.iter (fun temp ->
                     let tn = getNode temp in
-                    Graph.mk_edge {from = dn; to_ = tn}
-                ) live;
+                    if not (FGI.look_exn fgraph.ismove dn && List.mem temp uses) then
+                        Graph.mk_edge {from = dn; to_ = tn}
+                ) liveOut;
             ) def;
         ) nodes;
         (g, tempToNode, nodeToTemp)

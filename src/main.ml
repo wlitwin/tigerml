@@ -25,7 +25,8 @@ let genProgram (fragList : Fx86.frag list) : unit =
             print_endline ("STRING: " ^ (Symbol.name label) ^ " " ^ str)
         | Fx86.FUNCTION (stm, frame) ->
             Print_tree.print stm;     
-            let instr = (*Cx86.codegen frame stm*) 
+            let instr = Cx86.codegen frame stm
+            (*
                 let open Assem in
                 let a = Temp.newtemp()
                 and b = Temp.newtemp()
@@ -42,6 +43,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
                 (LABEL{assem=(Symbol.name lab); lab=lab2}) ::
                 (OPER{assem="ret `s0"; dst=[]; src=[c]; jump=None}) ::
                 []
+    *)
             in
             List.iteri (fun idx i ->
                (* Assem.print_instr i;*)
