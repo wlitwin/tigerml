@@ -33,13 +33,33 @@ let genProgram (fragList : Fx86.frag list) : unit =
             print_endline "--- LIVENESS GRAPH ----";
             Liveness.show (stdout, igraph);
             print_endline "--- GRAPH COLORING ----";
-            let (cgraph, colors) = Gcolor.color igraph in
+            let (cgraph, colors : Liveness.Graph.graph * int Temp.ITable.table) = Gcolor.color igraph Fx86.precolored Fx86.numRegisters in
             Liveness.Graph.show cgraph; 
             print_endline "--- COLORS ---";
+            (*
             Liveness.Graph.ITable.iter (fun k v -> 
                 Liveness.Graph.show_node k;
                 print_endline (string_of_int v);
             ) colors;
+            *)
+            print_endline "--- NEW ASSEM ---";
+            let replaceTemp t =
+                match Temp.ITable.look(colors, t) with
+                | Some color -> color
+                | None -> t
+            in
+            let makeNewInstr instr =
+                let open Assem in
+                match instr with
+                | OPER {assem; dst; src; jump} ->
+                        OPER {assem; dst=List.map replaceTemp dst; src=List.map replaceTemp src; jump}
+                | MOVE {assem; dst; src} ->
+                        MOVE {assem; dst=replaceTemp dst; src=replaceTemp src}
+                | _ -> instr
+            in
+            List.iter (fun i ->
+                print_endline (Assem.format Fx86.string_of_temp (makeNewInstr i))
+            ) instr;
             ()
     ) fragList
 ;;

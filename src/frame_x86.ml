@@ -3,6 +3,7 @@ module T = Tree
 type location = InReg of Temp.temp | InFrame of int
 
 let wordsize = 4
+let numRegisters = 6
 let eax = Temp.newtemp ()
 let ebx = Temp.newtemp ()
 let ecx = Temp.newtemp ()
@@ -30,6 +31,17 @@ type frame =
 
 type frag = STRING of Temp.label * string
           | FUNCTION of Tree.stm * frame
+
+let precolored = 
+    let colors = Temp.ITable.empty () in
+    Temp.ITable.enter (colors, eax, ());
+    Temp.ITable.enter (colors, ebx, ());
+    Temp.ITable.enter (colors, ecx, ());
+    Temp.ITable.enter (colors, edx, ());
+    Temp.ITable.enter (colors, ebp, ());
+    Temp.ITable.enter (colors, esp, ());
+    colors
+;;
 
 let tempMap : register Temp.ITable.table =
     let sym = Temp.ITable.empty () in

@@ -36,14 +36,15 @@
 module Graph = Graph.Graph
 module LG = Liveness.Graph
 module LGI = LG.ITable
-
-let numColors = 4
+module TI = Temp.ITable
 
 type color = int
 
 module SC = Set.Make(struct type t = int let compare = compare end)
 
-let color (igraph : Liveness.igraph) =
+type precolored = unit TI.table
+
+let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int) : (LG.graph * int TI.table) =
     let open Liveness in
     print_endline "~~~~ ORIG GRAPH ~~~~";
     LG.show igraph.graph;
@@ -105,8 +106,19 @@ let color (igraph : Liveness.igraph) =
                     set
             ) allColors adj 
         in
-        if SC.is_empty validColors then None
-        else Some (SC.choose validColors)
+        if SC.is_empty validColors then 
+            None
+        else ( 
+            let temp = LGI.look_exn igraph.gtemp node in
+            match TI.look(precoloring, temp) with
+            | Some _ ->
+                    if not (SC.mem temp validColors) then
+                        None
+                    else 
+                        Some temp
+            | None -> 
+                Some (SC.choose validColors)
+        )
     in
 
     (* Start popping nodes and coloring them *)
@@ -146,7 +158,8 @@ let color (igraph : Liveness.igraph) =
                 (* Rewrite program to put loads/stores around node *)
                 (* Remake the liveness graph *)
                 (* Redo coloring *)
-                raise (Failure "Optimistic Spill Failure")
+                (*raise (Failure "Optimistic Spill Failure")*)
+                LGI.enter(nodeColors, newNode, 0)
         done;
         print_endline "DONE COLORING!";
     (* Step 1 remove nodes until there is only one node in the graph *)
@@ -171,5 +184,13 @@ let color (igraph : Liveness.igraph) =
         end
     in
     simplify();
-    (newGraph, nodeColors)
+    let tempColorings : color TI.table =
+        let tbl = TI.empty () in
+        let nodes = LG.nodes newGraph in
+        List.iter (fun n ->
+            TI.enter(tbl, LGI.look_exn igraph.gtemp n, LGI.look_exn nodeColors n)
+        ) nodes;
+        tbl
+    in
+    (newGraph, tempColorings)
 ;;

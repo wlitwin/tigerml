@@ -3,7 +3,7 @@ module type T =
 sig
     module Graph = Graph.Graph
 
-    type allocation = Frame.register Temp.ITable.table
+    type allocation = Frame.register Temp.ITable.table (* Check table if temp exists, then it has a color? *)
     type data = {interference : Liveness.igraph;
                  initial: allocation;
                  spillCost: Graph.node -> int;
