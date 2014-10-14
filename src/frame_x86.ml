@@ -4,11 +4,11 @@ type location = InReg of Temp.temp | InFrame of int
 
 let wordsize = 4
 let numRegisters = 6
+let eax = Temp.newtemp ()
 let ebx = Temp.newtemp ()
 let ecx = Temp.newtemp ()
 let edx = Temp.newtemp ()
 let esp = Temp.newtemp ()
-let eax = Temp.newtemp ()
 let ebp = Temp.newtemp ()
 
 let fp = ebp
