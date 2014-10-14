@@ -100,22 +100,30 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
         let validColors = 
             List.fold_left (fun set n ->
                 (* Check for cycles *)
-                if not (LG.eq n node) then
+                (*if not (LG.eq n node) then*)
                     SC.remove (LGI.look_exn nodeColors n) set
-                else 
+                (*else 
                     set
+                    *)
             ) allColors adj 
         in
-        if SC.is_empty validColors then 
+        print_string "Available colors: ";
+        SC.iter (fun c -> print_string ((string_of_int c) ^ " ")) validColors;
+        if SC.is_empty validColors then (
+            print_endline "No more valid colors";
             None
-        else ( 
+        ) else ( 
             let temp = LGI.look_exn igraph.gtemp node in
             match TI.look(precoloring, temp) with
             | Some _ ->
-                    if not (SC.mem temp validColors) then
+                    print_endline "Temp is precolored";
+                    if not (SC.mem temp validColors) then (
+                        print_endline "Color not available";
                         None
-                    else 
+                    ) else (
+                        print_endline "Can use precoloring";
                         Some temp
+                    )
             | None -> 
                 Some (SC.choose validColors)
         )
@@ -141,14 +149,19 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
             let nodeExists n = List.fold_left (fun res node -> if res then res else LG.eq n node) false nodes in
             List.iter (fun succ ->
                 if nodeExists succ then (
-                    let n = LGI.look_exn oldToNew succ in
-                    LG.mk_edge {LG.from=newNode; to_=n}; print_endline "FOUND SUCC";
+                    match LGI.look(oldToNew, succ) with
+                    | Some n ->
+                        LG.mk_edge {LG.from=newNode; to_=n}; print_endline "FOUND SUCC";
+                    | None -> ()
                 )
             ) succ;
             List.iter (fun pred ->
                 if nodeExists pred then (
-                    let n = LGI.look_exn oldToNew pred in
-                    LG.mk_edge {LG.from=n; to_=newNode}; print_endline "FOUND PRED";
+                    (*let n = LGI.look_exn oldToNew pred in*)
+                    match LGI.look(oldToNew, pred) with
+                    | Some n ->
+                        LG.mk_edge {LG.from=n; to_=newNode}; print_endline "FOUND PRED";
+                    | None -> ()
                 )
             ) pred;
             (* Pick node color *)
@@ -158,8 +171,8 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
                 (* Rewrite program to put loads/stores around node *)
                 (* Remake the liveness graph *)
                 (* Redo coloring *)
-                (*raise (Failure "Optimistic Spill Failure")*)
-                LGI.enter(nodeColors, newNode, 0)
+                raise (Failure "Optimistic Spill Failure")
+                (*LGI.enter(nodeColors, newNode, 0)*)
         done;
         print_endline "DONE COLORING!";
     (* Step 1 remove nodes until there is only one node in the graph *)

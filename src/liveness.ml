@@ -47,9 +47,11 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
      *     out[n] U(s in succ[n]) in[s]
      *   until in'[n] = in[n] and out'[n] = out[n] for all n
      *)
+    (*
     FGI.iter (fun k v ->
         FG.show_node k
     ) fgraph.use;
+    *)
     let rec computeLiveMap () =
         let allEqual = ref true in
         List.iter (fun n ->
@@ -81,6 +83,24 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
     (* Compute liveness *)
     print_endline "COMPUTING LIVEMAP";
     computeLiveMap ();
+    print_endline "~~~~ LIVE IN ~~~~";
+    FGI.iter (fun k v ->
+        FG.show_node k; 
+        print_string "  ";
+        ST.iter (fun t ->
+            print_string ((Temp.makestring t) ^ " ")
+        ) v;
+        print_endline "";
+    ) liveInSet;
+    print_endline "~~~~ LIVE OUT ~~~~";
+    FGI.iter (fun k v ->
+        FG.show_node k; 
+        print_string "  ";
+        ST.iter (fun t ->
+            print_string ((Temp.makestring t) ^ " ")
+        ) v;
+        print_endline "";
+    ) liveOutSet;
     print_endline "DONE";
     (*let liveMap : ST.t FGI.table = FGI.union_exn liveInSet liveOutSet in*)
     let liveMap : ST.t FGI.table = 
@@ -129,15 +149,21 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
 let show (chan, igraph : out_channel * igraph) : unit =
     let nodes = Graph.nodes igraph.graph in
     print_endline ("NODES: " ^ (string_of_int (List.length nodes)));
-    List.iter (fun n -> (* For all nodes *)
+    List.iteri (fun i n -> (* For all nodes *)
         let temp = FGI.look_exn igraph.gtemp n in
-        let str = Temp.makestring temp in
-        Printf.fprintf chan "%s - " str;
-        let interferenceNodes = Graph.adj n in 
+        let str = Frame_x86.string_of_temp temp in
+        Printf.fprintf chan "Node (%d) %s\n  Succ: " i str;
+        let interSucc = Graph.succ n in 
+        let interPred = Graph.pred n in
         List.iter (fun inode -> (* For all neighbors *)
             let istr = (*Temp.makestring*)Frame_x86.string_of_temp (FGI.look_exn igraph.gtemp inode) in
             Printf.fprintf chan "%s " istr;
-        ) interferenceNodes;
+        ) interSucc;
+        print_string "\n  Pred: ";
+        List.iter (fun inode -> (* For all neighbors *)
+            let istr = (*Temp.makestring*)Frame_x86.string_of_temp (FGI.look_exn igraph.gtemp inode) in
+            Printf.fprintf chan "%s " istr;
+        ) interPred;
         Printf.fprintf chan "\n";
     ) nodes
 ;;

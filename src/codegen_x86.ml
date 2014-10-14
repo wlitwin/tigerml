@@ -69,7 +69,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
             result (fun (r : Temp.temp) -> 
                 let e1 = munchExp e1
                 and e2 = munchExp e2 in
-                emit (A.MOVE {assem="mov `d0, `s0"; src=e1; dst=r});
+                emit (A.MOVE {assem="mov `d0, `s0"; dst=r; src=e1});
                 emit (A.OPER {assem="add `d0, `s0";
                  dst=[r]; 
                  src=[e2; r]; jump=None}))

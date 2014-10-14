@@ -72,12 +72,13 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
         match (node, instr) with
         | (node, A.OPER {assem; dst; src; jump}) ->
                 FG.ITable.enter (use_tbl, node, []);
-                add_all_to_table use_tbl node dst;
-                add_all_to_table use_tbl node src;
                 FG.ITable.enter (def_tbl, node, []);
+                (*add_all_to_table use_tbl node dst;*)
+                add_all_to_table use_tbl node src;
+                add_all_to_table def_tbl node dst;
                 FG.ITable.enter (move_tbl, node, false);
         | (node, A.MOVE {assem; dst; src}) ->
-                FG.ITable.enter (use_tbl, node, [dst; src]);
+                FG.ITable.enter (use_tbl, node, [src]);
                 FG.ITable.enter (def_tbl, node, [dst]);
                 FG.ITable.enter (move_tbl, node, true)
         | (node, A.LABEL _) ->
@@ -96,6 +97,24 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
     let (_, nodeList, nodeInstrList) = List.fold_left add_edges (None, [], []) instrNodeList in
     List.iter create_tables nodeInstrList;
     let nodes = FG.nodes g in
+    print_endline "USE TABLE";
+    FG.ITable.iter (fun k v ->
+        FG.show_node k;
+        print_string "  ";
+        List.iter (fun t ->
+            print_string ((Temp.makestring t) ^ " ")
+        ) v;
+        print_endline "";
+    ) use_tbl;
+    print_endline "DEF TABLE";
+    FG.ITable.iter (fun k v ->
+        FG.show_node k;
+        print_string "  ";
+        List.iter (fun t ->
+            print_string ((Temp.makestring t) ^ " ")
+        ) v;
+        print_endline "";
+    ) def_tbl;
     print_endline "====MAKEGRAPH DONE====";
     ({ F.control = g; def = def_tbl; use = use_tbl; ismove = move_tbl }, nodeList)
 ;;

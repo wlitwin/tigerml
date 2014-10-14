@@ -15,6 +15,8 @@ open Liveness
 (*open Color*)
 open Gcolor
 
+module A = Assem
+
 let genProgram (fragList : Fx86.frag list) : unit =
     List.iter (fun frag ->
         print_endline "---- TRANSLATING FRAGMENT ----";
@@ -23,14 +25,32 @@ let genProgram (fragList : Fx86.frag list) : unit =
             print_endline ("STRING: " ^ (Symbol.name label) ^ " " ^ str)
         | Fx86.FUNCTION (stm, frame) ->
             Print_tree.print stm;     
-            let instr = Cx86.codegen frame stm in
-            List.iter (fun i ->
+            let instr = (*Cx86.codegen frame stm*) 
+                let open Assem in
+                let a = Temp.newtemp()
+                and b = Temp.newtemp()
+                and c = Temp.newtemp() in
+                let lab = Temp.newlabel() in
+                let lab2 = Temp.newlabel() in
+                (OPER{assem="mov `d0, 0"; dst=[a]; src=[]; jump=None}) ::
+                (OPER{assem="mov `d0, 0"; dst=[c]; src=[]; jump=None}) ::
+                (LABEL{assem=(Symbol.name lab); lab}) ::
+                (OPER{assem="add `d0, `s0, 1"; dst=[b]; src=[a]; jump=None}) ::
+                (OPER{assem="add `d0, `s0, `s1"; dst=[c]; src=[c;b]; jump=None}) ::
+                (OPER{assem="mul `d0, `s0, 2"; dst=[a]; src=[b]; jump=None}) ::
+                (OPER{assem="le `s0, N"; dst=[]; src=[a]; jump=Some[lab;lab2]}) ::
+                (LABEL{assem=(Symbol.name lab); lab=lab2}) ::
+                (OPER{assem="ret `s0"; dst=[]; src=[c]; jump=None}) ::
+                []
+            in
+            List.iteri (fun idx i ->
                (* Assem.print_instr i;*)
+                print_string ((string_of_int idx) ^ " ");
                 print_endline (Assem.format Fx86.string_of_temp i)
             ) instr;
             let (fgraph, nodes) = Makegraph.instrs2graph instr in
             let (igraph, table) = Liveness.interferenceGraph fgraph in
-            print_endline "--- LIVENESS GRAPH ----";
+            print_endline "--- LIVENESS IGRAPH ----";
             Liveness.show (stdout, igraph);
             print_endline "--- GRAPH COLORING ----";
             let (cgraph, colors : Liveness.Graph.graph * int Temp.ITable.table) = Gcolor.color igraph Fx86.precolored Fx86.numRegisters in
