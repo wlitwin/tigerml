@@ -7,7 +7,7 @@ val nodes: graph -> node list
 val succ: node -> node list
 val pred: node -> node list
 val adj: node -> node list (* succ + pred *)
-val eq: node * node -> bool
+val eq: node -> node -> bool
 
 val numNodes: graph -> int
 
@@ -21,6 +21,9 @@ type node_edge = {from: node; to_: node}
 val mk_edge: node_edge -> unit
 val rm_edge: node_edge -> unit
 val rm_node: node -> unit
+
+val show : graph -> unit
+val show_node : node -> unit
 
 module ITable : (Table.ITable with type key := node)
 

@@ -2,7 +2,7 @@ type temp = int
 type label = Symbol.symbol
 
 module ITable : (Table.ITable with type key := temp) =
-    Table.MakeITable (struct type key = temp end)
+    Table.MakeITable (struct type key = temp let equal = (=) let hash = Hashtbl.hash end)
 
 let temps = ref 0
 

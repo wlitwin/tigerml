@@ -29,6 +29,8 @@ end
 module type KeyValue =
 sig
     type key
+    val equal : key -> key -> bool
+    val hash : key -> int
 end
 
 module MakeITable (KV : KeyValue) : (ITable with type key := KV.key) =
@@ -37,7 +39,13 @@ struct
 
     let sizeHint = 10
 
-    type 'a table = (key, 'a) Hashtbl.t
+    module Hashtbl = Hashtbl.Make(struct 
+        type t = key 
+        let equal = KV.equal 
+        let hash = KV.hash
+    end)
+
+    type 'a table = 'a Hashtbl.t
 
     let clone table = Hashtbl.copy table
 
@@ -46,7 +54,7 @@ struct
     ;;
 
     let enter (table, key, value) =
-        Hashtbl.add table key value;
+        Hashtbl.replace table key value;
     ;;
 
     let look (table, key) : 'a option =
@@ -64,8 +72,9 @@ struct
         let out = clone tbl1 in
         Hashtbl.iter (fun k v -> 
             match look (tbl1, k) with
-            | Some _ -> raise (Failure "Key exists")
-            | None -> Hashtbl.add out k v
+            | Some v1 -> if not (v1 = v) then 
+                failwith "Key exists with different value!"
+            | None -> Hashtbl.replace out k v
         ) tbl2;
         out
     ;;

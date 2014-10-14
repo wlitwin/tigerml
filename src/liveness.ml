@@ -30,7 +30,8 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
     let open FG in
     let open Flowgraph in
     let nodes = List.rev (FG.nodes fgraph.control) in
-
+    print_endline ("FGRAPH NODES: " ^ (string_of_int (List.length nodes)));
+    FG.show fgraph.control;
     (* For each n in[n] <- {}; out[n] <- {} *)
     let liveInSet : ST.t FG.ITable.table = FG.ITable.empty () in
     let liveOutSet : ST.t FG.ITable.table = FG.ITable.empty () in
@@ -38,6 +39,7 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         FG.ITable.enter (liveInSet,  n, ST.empty);
         FG.ITable.enter (liveOutSet, n, ST.empty);
     ) nodes;
+    print_endline "TABLES MADE";
     (* repeat
      *   for each n
      *     in'[n] <- in[n]; out'[n] <- out[n]
@@ -45,22 +47,24 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
      *     out[n] U(s in succ[n]) in[s]
      *   until in'[n] = in[n] and out'[n] = out[n] for all n
      *)
-    let some opt = match opt with Some s -> s | None -> raise ErrorMsg.Error in
+    FGI.iter (fun k v ->
+        FG.show_node k
+    ) fgraph.use;
     let rec computeLiveMap () =
         let allEqual = ref true in
         List.iter (fun n ->
-            let inSet = some (FGI.look (liveInSet, n))
-            and outSet = some (FGI.look (liveOutSet, n)) in
+            let inSet = FGI.look_exn liveInSet n
+            and outSet = FGI.look_exn liveOutSet n in
             let in' = inSet
             and out' = outSet in
-            let useSet = ST.of_list (some (FGI.look (fgraph.use, n))) in
-            let defSet = ST.of_list (some (FGI.look (fgraph.def, n))) in
+            let useSet = ST.of_list (FGI.look_exn fgraph.use n) in
+            let defSet = ST.of_list (FGI.look_exn fgraph.def n) in
             let inSet = ST.union useSet (ST.diff outSet defSet) in
             (* Update the in[] map, so we can use it below *)
             FGI.enter (liveInSet, n, inSet);       
             let succ = FG.succ n in
             let outSet = List.fold_left (fun out s ->
-                    ST.union out (some (FGI.look (liveInSet, s)))
+                    ST.union out (FGI.look_exn liveInSet s)
                 ) outSet succ
             in
             (* Update the out[] map *)
@@ -75,8 +79,19 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         )
     in
     (* Compute liveness *)
+    print_endline "COMPUTING LIVEMAP";
     computeLiveMap ();
-    let liveMap : ST.t FGI.table = FGI.union_exn liveInSet liveOutSet in
+    print_endline "DONE";
+    (*let liveMap : ST.t FGI.table = FGI.union_exn liveInSet liveOutSet in*)
+    let liveMap : ST.t FGI.table = 
+        let liveMap = FGI.clone liveInSet in
+        FGI.iter (fun k v ->
+            match FGI.look (liveMap, k) with
+            | Some v1 -> FGI.enter (liveMap, k, ST.union v v1) 
+            | None -> ()
+        ) liveOutSet;
+        liveMap
+    in
     (* liveInSet and liveOutSet now have the liveIn + liveOut sets for all nodes *)
     let createIGraph () =
         let g = Graph.newGraph () in
@@ -92,8 +107,8 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         in
         List.iter (fun n ->
             (* TODO - check if it's a move and don't add interference for specific temporary *)
-            let def = ST.of_list (some (FGI.look (fgraph.def, n))) in
-            let live = some (FGI.look (liveMap, n)) in
+            let def = ST.of_list (FGI.look_exn fgraph.def n) in
+            let live = FGI.look_exn liveMap n in
             ST.iter (fun d ->
                 let dn = getNode d in
                 ST.iter (fun temp ->
@@ -104,6 +119,8 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         ) nodes;
         (g, tempToNode, nodeToTemp)
     in
+    print_endline "CREATING IGRAPH";
+    flush stdout;
     let (graph, tnode, gtemp) = createIGraph () in
     (* TODO populate the moves list *)
     ({ graph; tnode; gtemp; moves = [] }, liveOutSet)
@@ -111,13 +128,14 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
 
 let show (chan, igraph : out_channel * igraph) : unit =
     let nodes = Graph.nodes igraph.graph in
+    print_endline ("NODES: " ^ (string_of_int (List.length nodes)));
     List.iter (fun n -> (* For all nodes *)
         let temp = FGI.look_exn igraph.gtemp n in
         let str = Temp.makestring temp in
         Printf.fprintf chan "%s - " str;
         let interferenceNodes = Graph.adj n in 
         List.iter (fun inode -> (* For all neighbors *)
-            let istr = Temp.makestring (FGI.look_exn igraph.gtemp inode) in
+            let istr = (*Temp.makestring*)Frame_x86.string_of_temp (FGI.look_exn igraph.gtemp inode) in
             Printf.fprintf chan "%s " istr;
         ) interferenceNodes;
         Printf.fprintf chan "\n";

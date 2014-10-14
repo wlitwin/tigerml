@@ -28,6 +28,10 @@ let genProgram (fragList : Fx86.frag list) : unit =
                (* Assem.print_instr i;*)
                 print_endline (Assem.format Fx86.string_of_temp i)
             ) instr;
+            let (fgraph, nodes) = Makegraph.instrs2graph instr in
+            let (igraph, table) = Liveness.interferenceGraph fgraph in
+            print_endline "--- LIVENESS GRAPH ----";
+            Liveness.show (stdout, igraph);
     ) fragList
 ;;
 

@@ -7,7 +7,7 @@ val nodes: graph -> node list
 val succ: node -> node list
 val pred: node -> node list
 val adj: node -> node list (* succ + pred *)
-val eq: node * node -> bool
+val eq: node -> node -> bool
 
 val numNodes: graph -> int
 
@@ -22,6 +22,9 @@ val mk_edge: node_edge -> unit
 val rm_edge: node_edge -> unit
 val rm_node: node -> unit
 
+val show : graph -> unit
+val show_node : node -> unit
+
 module ITable : (Table.ITable with type key := node)
 
 val nodename: node -> string (* For debugging only *)
@@ -32,15 +35,16 @@ module D = Dynarray
 
 type node' = int
 
-type node_rec = {succ: node' list; pred: node' list}
+module SI = Set.Make(struct type t = int let compare = compare end)
+
+type node_rec = {succ: SI.t; pred: SI.t}
 type noderep = NODE of node_rec
 
-let emptyNode = NODE {succ=[]; pred=[]}
-let bogusNode = NODE {succ=[-1]; pred=[]}
+let emptyNode = NODE {succ=SI.empty; pred=SI.empty}
+let bogusNode = NODE {succ=SI.singleton ~-1; pred=SI.empty}
 
-let isBogus = function
-    | NODE {succ = (-1 :: _); pred} -> true
-    | _ -> false
+let isBogus node = 
+    node == bogusNode
 ;;
 
 type graph = noderep D.t
@@ -51,10 +55,18 @@ let copy g =
     D.copy g
 ;;
 
-module ITable =
-    Table.MakeITable (struct type key = node end)
+let eq (_, a) (_, b) = a = b
 
-let eq ((_, a), (_, b)) = a = b
+module ITable =
+    Table.MakeITable (struct 
+        type key = node 
+        (*let equal (g1, n1) (g2, n2) = 
+            (g1 == g2) && (n1 = n2)
+    *)
+        let equal : key -> key -> bool = eq
+        let hash (_, n) = Hashtbl.hash n
+    end)
+
 
 let numNodes g = D.length g
 
@@ -72,20 +84,23 @@ let nodes g =
 
 let succ (g, i) =
     let NODE {succ=s; pred} = D.get g i in
-    List.map (augment g) s
+    List.map (augment g) (SI.elements s)
 ;;
 
 let pred (g, i) =
     let NODE {succ; pred=p} = D.get g i in
-    List.map (augment g) p
+    List.map (augment g) (SI.elements p)
 ;;
 
-let adj gi = 
-    pred gi @ succ gi
+let adj (g, i) = 
+    let NODE {succ=s; pred} = D.get g i in
+    let NODE {succ; pred=p} = D.get g i in
+    List.map (augment g) (SI.elements (SI.union s p))
 ;;
 
 let newNode g = 
     (* Binary search for unused node *)
+    (*
     let rec look (hi, lo) =
         (* i < lo indicates i is in use
          * i >= hi indicates i not in use *)
@@ -98,14 +113,20 @@ let newNode g =
         )
     in
     look (0, 1 + D.length g)
+    *)
+    let idx = D.length g in
+    D.set g idx emptyNode;
+    (g, idx)
 ;;
 
 exception GraphEdge
 let check (g, g') = ()
 
-let rec delete = function
-    | (i, j :: rest) -> if i = j then rest else j :: delete (i, rest)
-    | (_, []) -> raise GraphEdge
+let rec delete (elem, set) = 
+    if not (SI.mem elem set) then
+        raise GraphEdge
+    else
+        SI.remove elem set
 ;;
 
 let diddle_edge change (node : node_edge) : unit =
@@ -117,8 +138,38 @@ let diddle_edge change (node : node_edge) : unit =
     D.set g j (NODE {succ=sj; pred=change (i, pj)})
 ;;
 
-let mk_edge : node_edge -> unit = diddle_edge (fun (a, b) -> a :: b)
+let mk_edge : node_edge -> unit = diddle_edge (fun (a, b) -> SI.add a b)
 let rm_edge : node_edge -> unit = diddle_edge delete
+
+let print_node node =
+    match node with
+    | NODE {succ; pred} ->
+            print_string "PRED: ";
+            SI.iter (fun p ->
+                print_string (string_of_int p); 
+                print_string " ";
+            ) pred;
+            print_string " SUCC: ";
+            SI.iter (fun s ->
+                print_string (string_of_int s); 
+                print_string " ";
+            ) succ;
+            print_endline "";
+;;
+
+let show_node (g, node : node) =
+    print_string ("NODE: " ^ (string_of_int node) ^ " ");
+    print_node (D.get g node)
+;;
+
+let show (g : graph) : unit =
+    for i=0 to (D.length g)-1 do
+        if not (isBogus (D.get g i)) then begin
+            print_string ("NODE : " ^ (string_of_int i) ^ " ");
+            print_node (D.get g i);
+        end
+    done
+;;
 
 let rm_node node : unit =
     let succs = succ node in

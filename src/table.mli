@@ -30,6 +30,8 @@ end
 module type KeyValue =
     sig
         type key
+        val equal : key -> key -> bool
+        val hash : key -> int
     end
 
 module Make (KV : KeyValue) : Table
