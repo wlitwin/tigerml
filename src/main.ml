@@ -32,6 +32,15 @@ let genProgram (fragList : Fx86.frag list) : unit =
             let (igraph, table) = Liveness.interferenceGraph fgraph in
             print_endline "--- LIVENESS GRAPH ----";
             Liveness.show (stdout, igraph);
+            print_endline "--- GRAPH COLORING ----";
+            let (cgraph, colors) = Gcolor.color igraph in
+            Liveness.Graph.show cgraph; 
+            print_endline "--- COLORS ---";
+            Liveness.Graph.ITable.iter (fun k v -> 
+                Liveness.Graph.show_node k;
+                print_endline (string_of_int v);
+            ) colors;
+            ()
     ) fragList
 ;;
 

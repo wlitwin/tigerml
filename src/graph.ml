@@ -41,15 +41,22 @@ type node_rec = {succ: SI.t; pred: SI.t}
 type noderep = NODE of node_rec
 
 let emptyNode = NODE {succ=SI.empty; pred=SI.empty}
-let bogusNode = NODE {succ=SI.singleton ~-1; pred=SI.empty}
-
-let isBogus node = 
-    node == bogusNode
-;;
+let bogusNode = NODE {succ=SI.singleton ~-1; pred=SI.singleton ~-1}
 
 type graph = noderep D.t
 type node = graph * node'
 type node_edge = {from: node; to_: node}
+
+let isBogus (g, i : node) = 
+    (D.get g i) == bogusNode
+    (*
+    let (bs, bp) = match bogusNode with NODE {succ=s; pred=p} -> (s, p) in
+    match D.get g i with
+    | NODE {succ=s; pred=p} -> 
+            (s = bs) && (p = bp)
+    | _ -> false
+    *)
+;;
 
 let copy g =
     D.copy g
@@ -67,20 +74,20 @@ module ITable =
         let hash (_, n) = Hashtbl.hash n
     end)
 
-
-let numNodes g = D.length g
-
 let augment (g: graph) (n: node') : node = (g, n)
 
 let newGraph () = D.make 0 bogusNode
 
 let nodes g =
-    let rec f i = 
-        if isBogus (D.get g i) then []
-        else (g, i) :: f (i+1)
-    in
-    f 0
+    let lst = ref [] in
+    for i=0 to D.length g - 1 do
+        if not (isBogus (g, i)) then
+            lst := (g, i) :: !lst
+    done;
+    !lst
 ;;
+
+let numNodes g = List.length (nodes g)
 
 let succ (g, i) =
     let NODE {succ=s; pred} = D.get g i in
@@ -164,7 +171,7 @@ let show_node (g, node : node) =
 
 let show (g : graph) : unit =
     for i=0 to (D.length g)-1 do
-        if not (isBogus (D.get g i)) then begin
+        if not (isBogus (g, i)) then begin
             print_string ("NODE : " ^ (string_of_int i) ^ " ");
             print_node (D.get g i);
         end
@@ -172,14 +179,23 @@ let show (g : graph) : unit =
 ;;
 
 let rm_node node : unit =
+    let (n, i) = node in
     let succs = succ node in
     let preds = pred node in
     List.iter (fun neighbor ->
-        rm_edge {from = node; to_ = neighbor}
-    ) succs;
-    List.iter (fun neighbor ->
-        rm_edge {from = neighbor; to_ = node}
+        let (nn, ni) = neighbor in
+        if not (i = ni) then
+            rm_edge {from = neighbor; to_ = node}
     ) preds;
+    List.iter (fun neighbor ->
+        let (nn, ni) = neighbor in
+        if not (i = ni) then
+            rm_edge {from = node; to_ = neighbor}
+    ) succs;
+    let (g, i) = node in
+(*    print_string "BOGUS? "; print_string (string_of_bool (isBogus (g, i))); print_endline"";*)
+    D.set g i bogusNode;
+    (*print_endline "NOW BOGUS? "; print_string (string_of_bool (isBogus (g, i))); print_endline ""; *)
 ;;
 
 let nodename (g, i : node) = "n" ^ (string_of_int i)
