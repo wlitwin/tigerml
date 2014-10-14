@@ -128,15 +128,17 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         List.iter (fun n ->
             (* TODO - check if it's a move and don't add interference for specific temporary *)
             let def = ST.of_list (FGI.look_exn fgraph.def n) in
-            let liveOut = FGI.look_exn liveOutSet n in
+            let live = FGI.look_exn liveOutSet n in
             ST.iter (fun d ->
                 let dn = getNode d in
                 let uses = FGI.look_exn fgraph.use dn in
                 ST.iter (fun temp ->
                     let tn = getNode temp in
-                    if not (FGI.look_exn fgraph.ismove dn && List.mem temp uses) then
-                        Graph.mk_edge {from = dn; to_ = tn}
-                ) liveOut;
+                    if not (FGI.look_exn fgraph.ismove dn && List.mem temp uses) then begin
+                        Graph.mk_edge {from = dn; to_ = tn};
+                        Graph.mk_edge {from = tn; to_ = dn}
+                    end
+                ) live;
             ) def;
         ) nodes;
         (g, tempToNode, nodeToTemp)

@@ -74,14 +74,25 @@ let genProgram (fragList : Fx86.frag list) : unit =
                 let open Assem in
                 match instr with
                 | OPER {assem; dst; src; jump} ->
-                        OPER {assem; dst=List.map replaceTemp dst; src=List.map replaceTemp src; jump}
+                        Some (OPER {assem; dst=List.map replaceTemp dst; src=List.map replaceTemp src; jump})
                 | MOVE {assem; dst; src} ->
-                        MOVE {assem; dst=replaceTemp dst; src=replaceTemp src}
-                | _ -> instr
+                        let newDst = replaceTemp dst
+                        and newSrc = replaceTemp src in
+                        if newDst = newSrc then None
+                        else Some (MOVE {assem; dst=replaceTemp dst; src=replaceTemp src})
+                | _ -> Some instr
+            in
+            let newInstrList = 
+                List.fold_left (fun acc i ->
+                    match makeNewInstr i with
+                    | Some i -> i :: acc
+                    | None -> acc
+                ) [] instr
+                |> List.rev
             in
             List.iter (fun i ->
-                print_endline (Assem.format Fx86.string_of_temp (makeNewInstr i))
-            ) instr;
+                print_endline (Assem.format Fx86.string_of_temp i)
+            ) newInstrList;
             ()
     ) fragList
 ;;

@@ -48,25 +48,36 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
     let open Liveness in
     print_endline "~~~~ ORIG GRAPH ~~~~";
     LG.show igraph.graph;
+    let orig_graph = LG.copy igraph.graph in
     print_endline "~~~~ END ORIG GRAPH ~~~~";
     let degree : int LGI.table = LGI.empty () in
     let removedStack : LG.node Stack.t = Stack.create () in
     (*let nodes = Graph.nodes igraph.graph in*)
     let nodeColors : color LGI.table = LGI.empty () in
+    (*
     let newGraph = LG.newGraph() in (* Stores the rebuilt and colored graph *)
-    let oldToNew : LG.node LGI.table = LGI.empty () in (* Maps orig_graph nodes to newGraph nodes *)
     let origSuccPreds : (LG.node list * LG.node list) LGI.table = LGI.empty () in
+*)
+    let oldToNew : LG.node LGI.table = LGI.empty () in (* Maps orig_graph nodes to newGraph nodes *)
+    
+    List.iter2 (fun nOld nNew ->
+        if not (LG.eq nOld nNew) then failwith "BAALAH";
+        LGI.enter(oldToNew, nOld, nNew);
+    ) (LG.nodes igraph.graph) (LG.nodes orig_graph);
+
     let allColors = 
         let set = ref SC.empty in
         for i=0 to numColors-1 do set := SC.add i !set done;
         !set
     in
+    (*
     (* Map old nodes to new nodes *)
     List.iter (fun oldNode ->
-        (*let newNode = LG.newNode newGraph in*)
-        (*LGI.enter(oldToNew, oldNode, newNode);*)
+        let newNode = LG.newNode newGraph in
+        LGI.enter(oldToNew, oldNode, newNode);
         LGI.enter(origSuccPreds, oldNode, (LG.succ oldNode, LG.pred oldNode))
     ) (LG.nodes igraph.graph);
+    *)
 
     (* Set the current degree for all nodes *)
     let updateDegrees() =
@@ -99,12 +110,9 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
         List.iter (fun n -> LG.show_node n) adj;
         let validColors = 
             List.fold_left (fun set n ->
-                (* Check for cycles *)
-                (*if not (LG.eq n node) then*)
-                    SC.remove (LGI.look_exn nodeColors n) set
-                (*else 
-                    set
-                    *)
+                match LGI.look(nodeColors, n) with
+                | Some c -> SC.remove c set
+                | None -> set
             ) allColors adj 
         in
         print_string "Available colors: ";
@@ -133,40 +141,10 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
     let rec colorNodes () =
         print_endline "Coloring!";
         while not (Stack.is_empty removedStack) do
-            let oldNode = Stack.pop removedStack in
-            let newNode = LG.newNode newGraph in
-            LGI.enter(oldToNew, oldNode, newNode);
-            print_endline "POPPING NODE";
-            LG.show_node oldNode;
-            LG.show_node newNode;
-            (* Fixup edges in new and old graphs *)
-            (* XXX - If something goes wrong maybe it's due to multiple edges? *)
-            let (succ, pred) = LGI.look_exn origSuccPreds oldNode in
-            let nodes = LG.nodes newGraph in
-            print_endline "~!@~ NEW GRAPH ~@!~";
-            LG.show newGraph;
-            print_endline "~!@~ END NEW GRAPH ~@!~";
-            let nodeExists n = List.fold_left (fun res node -> if res then res else LG.eq n node) false nodes in
-            List.iter (fun succ ->
-                if nodeExists succ then (
-                    match LGI.look(oldToNew, succ) with
-                    | Some n ->
-                        LG.mk_edge {LG.from=newNode; to_=n}; print_endline "FOUND SUCC";
-                    | None -> ()
-                )
-            ) succ;
-            List.iter (fun pred ->
-                if nodeExists pred then (
-                    (*let n = LGI.look_exn oldToNew pred in*)
-                    match LGI.look(oldToNew, pred) with
-                    | Some n ->
-                        LG.mk_edge {LG.from=n; to_=newNode}; print_endline "FOUND PRED";
-                    | None -> ()
-                )
-            ) pred;
+            let node = LGI.look_exn oldToNew (Stack.pop removedStack) in
             (* Pick node color *)
-            match pickColor newNode with
-            | Some c -> LGI.enter(nodeColors, newNode, c)
+            match pickColor node with
+            | Some c -> LGI.enter(nodeColors, node, c)
             | None -> (* Optimistic coloring failed, must do actual spill *)
                 (* Rewrite program to put loads/stores around node *)
                 (* Remake the liveness graph *)
@@ -199,11 +177,11 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
     simplify();
     let tempColorings : color TI.table =
         let tbl = TI.empty () in
-        let nodes = LG.nodes newGraph in
+        let nodes = LG.nodes orig_graph in
         List.iter (fun n ->
             TI.enter(tbl, LGI.look_exn igraph.gtemp n, LGI.look_exn nodeColors n)
         ) nodes;
         tbl
     in
-    (newGraph, tempColorings)
+    (orig_graph, tempColorings)
 ;;
