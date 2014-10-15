@@ -15,7 +15,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
     let (blocks, lab) = Canon.basicBlocks (Canon.linearize stm) in
     List.iteri (fun i lst ->
         print_endline ("block " ^ (string_of_int i));
-        List.iter (fun i -> 
+        List.iter (fun i ->
             Print_tree.print i
         ) lst;
     ) blocks;
@@ -34,17 +34,17 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
     let rec munchStm : T.stm -> unit = function
         (* mov [addr], e2 *)
         (*| T.MOVE (T.MEM e1, e2) ->
-                emit (A.MOVE {assem="mov [`d0], `s0"; 
-                              dst=munchExp e1; 
+                emit (A.MOVE {assem="mov [`d0], `s0";
+                              dst=munchExp e1;
                               src=munchExp e2})
         | T.MOVE (e1, T.MEM e2) ->
-                emit (A.MOVE {assem="mov `d0, [`s0]"; 
-                              dst=munchExp e1; 
+                emit (A.MOVE {assem="mov `d0, [`s0]";
+                              dst=munchExp e1;
                               src=munchExp e2})
                               *)
-        | T.MOVE (e1, T.CONST i) ->
-                emit (A.OPER {assem="mov `d0, " ^ (itos i); 
-                              dst=[munchExp e1]; 
+        | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c1)), T.CONST c2) ->
+                emit (A.OPER {assem="mov dword [`d0+" ^ (itos c1) ^ "], " ^ (itos c2);
+                              dst=[munchExp e1];
                               src=[]; jump=None})
         | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c)), e2) ->
                 emit (A.MOVE {assem="mov [`d0+" ^ (itos c) ^ "], `s0";
@@ -54,6 +54,10 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.MOVE {assem="mov `d0, [`s0+" ^ (itos c) ^ "]";
                               dst=munchExp e1;
                               src=munchExp e2;})
+        | T.MOVE (e1, T.CONST i) ->
+                emit (A.OPER {assem="mov `d0, " ^ (itos i);
+                              dst=[munchExp e1];
+                              src=[]; jump=None})
         | T.MOVE (e1, e2) ->
                 emit (A.MOVE {assem="mov `d0, `s0"; dst=munchExp e1; src=munchExp e2})
         | T.LABEL lab ->
@@ -69,7 +73,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | [] -> []
         | hd :: tl ->
             match hd with
-            | T.CONST c -> 
+            | T.CONST c ->
                     emit (A.OPER {assem="push " ^ (itos c); src=[]; dst=[]; jump=None});
                     munchArgs(0, tl)
             | _ ->
@@ -90,15 +94,19 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                               dst = (*calldefs*)[Frame_x86.eax]; (* registers that get trashed *)
                               jump = None});
                 (* Need to emit the cleanup of the stack *)
-                emit (A.OPER {assem="add esp, " ^ (itos ((List.length args)*4)); 
+                emit (A.OPER {assem="add esp, " ^ (itos ((List.length args)*4));
                               src=[]; dst=[Frame_x86.esp]; jump=None});
                 Frame_x86.eax
-                
-        (*| T.LABEL lab -> 
+
+        (*| T.LABEL lab ->
                 result (fun r ->
                     emit (T.OPER {assem="mov `d0, " ^ (Symbol.name lab); src=[]; dst=[r]; jump=None})
                 )
                 *)
+        | T.MEM (T.BINOP (T.PLUS, T.TEMP e1, T.CONST c)) ->
+            result (fun r ->
+                emit (A.MOVE {assem="mov `d0, [`s0+" ^ (itos c) ^ "]"; src=e1; dst=r})
+            )
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
         | T.BINOP (T.PLUS, e1, T.CONST c) ->
@@ -113,12 +121,12 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.OPER {assem="imul `d0, `s0"; dst=[r]; src=[e2; r]; jump=None})
             )
         | T.BINOP (T.PLUS, e1, e2) ->
-            result (fun (r : Temp.temp) -> 
+            result (fun (r : Temp.temp) ->
                 let e1 = munchExp e1
                 and e2 = munchExp e2 in
                 emit (A.MOVE {assem="mov `d0, `s0"; dst=r; src=e1});
                 emit (A.OPER {assem="add `d0, `s0";
-                 dst=[r]; 
+                 dst=[r];
                  src=[e2; r]; jump=None}))
         | exp -> Print_tree.print (T.EXP exp); failwith "Compiler - unhandled munchExp case"
     in

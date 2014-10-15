@@ -90,7 +90,7 @@ let procEntryExit1 (frame, stm) =
         ] @ 
         (if numLocals > 0 then
             (* Create space for locals *)
-            [T.MOVE (T.TEMP esp, (T.BINOP (T.PLUS, T.TEMP esp, T.CONST (4*numLocals))))]
+            [T.MOVE (T.TEMP esp, (T.BINOP (T.PLUS, T.TEMP esp, T.CONST (-4*numLocals))))]
         else [])
         (* Restore all registers, except eax *)
         @ [stm] @ [
@@ -138,7 +138,7 @@ let newFrame label escapes =
     in
     { label;
       locals = ref [];
-      local_offset = ref 0;
+      local_offset = ref ~-4;
       formals }
 ;;
 
@@ -152,8 +152,8 @@ let formals frame : access list =
 
 let allocLocal frame escape =
     let loc = match escape with
-            | true -> InReg (Temp.newtemp ())
-            | false ->
+            | false -> InReg (Temp.newtemp ())
+            | true ->
                     let off = !(frame.local_offset) in
                     frame.local_offset := off - 4;
                     InFrame off
