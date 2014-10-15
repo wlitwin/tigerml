@@ -38,7 +38,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                               dst=munchExp e1; 
                               src=munchExp e2})
         | T.MOVE (e1, T.MEM e2) ->
-                emit (A.MOVE {assem="mov `d0, [`s0']"; 
+                emit (A.MOVE {assem="mov `d0, [`s0]"; 
                               dst=munchExp e1; 
                               src=munchExp e2})
         | T.MOVE (e1, T.CONST i) ->
@@ -52,7 +52,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | T.JUMP (e1, [label]) ->
                 emit (A.OPER {assem="jmp `j0"; src=[]; dst=[]; jump=Some [label]})
         | T.EXP (T.CALL (e, args)) ->
-                emit (A.OPER {assem = "CALL 's0\n";
+                emit (A.OPER {assem = "CALL `s0";
                               src = munchExp e :: munchArgs (0, args);
                               (* dst should have any registers that get clobbered by
                                * the assem instruction output about *)
@@ -65,6 +65,13 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | T.TEMP t -> t
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
+        | T.BINOP (T.MUL, e1, e2) ->
+            result (fun r ->
+                let e1 = munchExp e1
+                and e2 = munchExp e2 in
+                emit (A.MOVE {assem="mov `d0, `s0"; dst=r; src=e1});
+                emit (A.OPER {assem="imul `d0, `s0"; dst=[r]; src=[e2; r]; jump=None})
+            )
         | T.BINOP (T.PLUS, e1, e2) ->
             result (fun (r : Temp.temp) -> 
                 let e1 = munchExp e1

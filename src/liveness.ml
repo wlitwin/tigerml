@@ -132,12 +132,20 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
             ST.iter (fun d ->
                 let dn = getNode d in
                 let uses = FGI.look_exn fgraph.use dn in
+                let defs = FGI.look_exn fgraph.def dn in
                 ST.iter (fun temp ->
                     let tn = getNode temp in
-                    if not (FGI.look_exn fgraph.ismove dn && List.mem temp uses) then begin
+                    let ismove = FGI.look_exn fgraph.ismove dn in
+                    (*if ismove then begin
+                        if not (List.mem temp uses) then (
+                            Graph.mk_edge {from = dn; to_ = tn};
+                            Graph.mk_edge {from = tn; to_ = dn}
+                        )
+                    end else begin
+                        *)
                         Graph.mk_edge {from = dn; to_ = tn};
                         Graph.mk_edge {from = tn; to_ = dn}
-                    end
+                    (*end*)
                 ) live;
             ) def;
         ) nodes;
