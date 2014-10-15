@@ -68,6 +68,12 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.OPER {assem="mov dword [`d0+" ^ (itos c1) ^ "], " ^ (itos c2);
                               dst=[munchExp e1];
                               src=[]; jump=None})
+        | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c1)), T.NAME l2) ->
+                emit (A.OPER {assem="mov dword [`d0+" ^ (itos c1) ^ "], " ^ (Symbol.name l2);
+                              dst=[munchExp e1];
+                              src=[]; jump=None})
+        | T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP e1, T.CONST c1)), e2) ->
+                emit (A.OPER {assem="mov [`d0+" ^ (itos c1) ^ "], `s0"; src=[munchExp e2]; dst=[e1]; jump=None})
         | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c)), e2) ->
                 emit (A.MOVE {assem="mov [`d0+" ^ (itos c) ^ "], `s0";
                               dst=munchExp e1;
@@ -80,6 +86,8 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.OPER {assem="mov `d0, " ^ (itos i);
                               dst=[munchExp e1];
                               src=[]; jump=None})
+        | T.MOVE (T.MEM e1, e2) ->
+                emit (A.MOVE {assem="mov [`d0], `s0"; dst=munchExp e1; src=munchExp e2})
         | T.MOVE (e1, e2) ->
                 emit (A.MOVE {assem="mov `d0, `s0"; dst=munchExp e1; src=munchExp e2})
         | T.LABEL lab ->
@@ -119,8 +127,8 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                               dst = (*calldefs*)[Frame_x86.eax]; (* registers that get trashed *)
                               jump = None});
                 (* Need to emit the cleanup of the stack *)
-                emit (A.OPER {assem="add esp, " ^ (itos ((List.length args)*4));
-                              src=[]; dst=[Frame_x86.esp]; jump=None});
+                emit (A.OPER {assem="add `s0, " ^ (itos ((List.length args)*4));
+                              src=[Frame_x86.esp]; dst=[Frame_x86.esp]; jump=None});
                 Frame_x86.eax
 
         (*| T.LABEL lab ->
@@ -132,8 +140,17 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
             result (fun r ->
                 emit (A.MOVE {assem="mov `d0, [`s0+" ^ (itos c) ^ "]"; src=e1; dst=r})
             )
+        | T.MEM (T.TEMP e1) ->
+            result (fun r ->
+                emit (A.MOVE {assem="mov `d0, [`s0]"; src=e1; dst=r})
+            )
+        | T.MEM e -> result (fun r -> emit (A.MOVE {assem="mov `d0, [`s0]"; src=munchExp e; dst=r}))
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
+        | T.BINOP (T.MINUS, e1, T.CONST c) ->
+            let loc = munchExp e1 in
+            emit (A.OPER {assem="sub `d0, " ^ (itos c); src=[]; dst=[loc]; jump=None});
+            loc
         | T.BINOP (T.PLUS, e1, T.CONST c) ->
             let loc = munchExp e1 in
             emit (A.OPER {assem="add `d0, " ^ (itos c); src=[]; dst=[loc]; jump=None});

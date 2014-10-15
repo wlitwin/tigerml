@@ -226,6 +226,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
                             if field = name then ty
                             else fieldtype name tl
                     in
+                    (*
                     let fields = List.fold_left 
                         (fun acc (fname, exp) -> 
                             let (fexp, tyexp) = transExp (venv, tenv, level, loop, exp) in
@@ -238,6 +239,9 @@ and transExp (venv, tenv, level, loop, exp) : expty =
                         ) [] fields
                     in
                     (T.recordExp fields, tyrec)
+                    *)
+                    (T.recordExp [], Types.INT)
+                    (*(T.intExp 243243243, Types.INT)*)
             | _ -> error pos ("Not of record type: " ^ (Types.str (actual_ty tyrec)))
             )
      (**************** Assign Expression ****************)

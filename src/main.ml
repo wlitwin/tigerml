@@ -108,7 +108,11 @@ let genProgram (fragList : Fx86.frag list) : unit =
 
     (* Write assembly to file *)
     let out = open_out "prog.s" in
-    Printf.fprintf out "bits 32\nglobal __prog\nextern print\n";
+    Printf.fprintf out "%s"
+        (String.concat "\n" 
+        ["bits 32";"global __prog";"extern print";"extern ord";"extern chr";
+         "extern substring";"extern getchar_";"extern flush";"extern size";
+         "extern concat";"extern not";"extern allocRecord";"extern initArray"]);
     List.iter (fun str ->
         Printf.fprintf out "%s\n" str
     ) !strlst;

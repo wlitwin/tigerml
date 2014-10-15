@@ -127,7 +127,7 @@ let procEntryExit2 (frame, body) =
     match body with 
     | hd :: tl ->
         hd :: (Assem.OPER  {Assem.assem="push `s0"; dst=[]; src=[ebp]; jump=None}) :: tl
-        @ [Assem.OPER {Assem.assem=""; src=[eax;esp]; dst=[]; jump=None}]
+        @ [Assem.OPER {Assem.assem="; Sink Instruction"; src=[eax;esp;ebp]; dst=[]; jump=None}]
     | _ -> failwith "ICE"
 ;;
 
@@ -176,6 +176,6 @@ let exp access texp : Tree.exp =
 ;;
 
 let externalCall (s, args) =
-    T.CALL (T.NAME (Temp.namedlabel s), args)
+    (*T.CALL (T.NAME (Temp.namedlabel s), args)*)
+    T.CONST 12345678
 ;;
-

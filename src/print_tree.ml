@@ -5,7 +5,8 @@ let print (s0 : Tree.stm) : unit =
     let sayln s = say s; say "\n" in
     let rec indent = function
         | 0 -> ()
-        | i -> say " "; indent (i-1)
+        | i when i mod 4 = 0 -> indent (i-1); say "+"
+        | i -> indent (i-1); say "-"
     in
     
     let rec stm : (Tree.stm * int) -> unit = function
