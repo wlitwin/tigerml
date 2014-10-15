@@ -98,6 +98,9 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
             | T.CONST c ->
                     emit (A.OPER {assem="push " ^ (itos c); src=[]; dst=[]; jump=None});
                     munchArgs(0, tl)
+            | T.NAME lab ->
+                    emit (A.OPER {assem="push " ^ (Symbol.name lab); src=[]; dst=[]; jump=None});
+                    munchArgs(0, tl)
             | _ ->
                 let tloc = munchExp hd in
                 emit (A.OPER {assem="push `s0"; src=[tloc]; dst=[]; jump=None});

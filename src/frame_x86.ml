@@ -75,6 +75,18 @@ let genString (label, str) =
 
 ;;
 
+let allocLocal frame escape =
+    let loc = match escape with
+            | false -> InReg (Temp.newtemp ())
+            | true ->
+                    let off = !(frame.local_offset) in
+                    frame.local_offset := off - 4;
+                    InFrame off
+    in
+    frame.locals := loc :: !(frame.locals);
+    loc
+;;
+
 let procEntryExit1 (frame, stm) =
     print_endline "==== FORMALS ====";
     List.iter (fun loc ->
@@ -155,18 +167,6 @@ let name frame =
 
 let formals frame : access list =
     frame.formals
-;;
-
-let allocLocal frame escape =
-    let loc = match escape with
-            | false -> InReg (Temp.newtemp ())
-            | true ->
-                    let off = !(frame.local_offset) in
-                    frame.local_offset := off - 4;
-                    InFrame off
-    in
-    frame.locals := loc :: !(frame.locals);
-    loc
 ;;
 
 let exp access texp : Tree.exp =

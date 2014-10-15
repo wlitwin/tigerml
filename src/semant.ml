@@ -113,6 +113,7 @@ let rec transVar (venv, tenv, level, loop, var) : expty = match var with
             (match S.look (venv, sym) with
             | Some (Env.VarEntry (acc, ty)) -> 
                     (T.simpleVar acc level, actual_ty ty)
+            | Some (Env.ExtFunEntry _)
             | Some (Env.FunEntry _) -> impossible "SimpleVar as a FunEntry"
             | None -> error pos ("Var " ^ (S.name sym) ^ " does not exist in this scope - 2")
             )
@@ -326,23 +327,25 @@ and transExp (venv, tenv, level, loop, exp) : expty =
             (T.arrayExp sexpty iexpty, tyarr)
      (**************** Call Expression ****************)
      | A.CallExp ((name, params), pos) ->
-            let (lvl, name, formals, tyresult) =
+            let (lvl, name, formals, tyresult, isextern) =
                 match S.look (venv, name) with
-                | Some (Env.FunEntry (lvl, name, formals, result)) -> (lvl, name, formals, result)
+                | Some (Env.FunEntry (lvl, name, formals, result)) -> (lvl, name, formals, result, false)
+                | Some (Env.ExtFunEntry (lvl, name, formals, result)) -> (lvl, name, formals, result, true)
                 | _ -> error pos ((S.name name) ^ " is not of function type")
             in
             let flen = List.length formals 
             and plen = List.length params in
             let rec checkparams acc = function
-                | ([], []) -> (T.callExp name (List.rev acc) lvl level, tyresult)
-                | (fty :: ftl, p :: ptl) ->
+                | ([], [], false) -> (T.callExp name (List.rev acc) lvl level, tyresult)
+                | ([], [], true)  -> (T.callExtern name (List.rev acc) lvl level, tyresult)
+                | (fty :: ftl, p :: ptl, isextern) ->
                     let (pexpty, pty) = transExp (venv, tenv, level, loop, p) in 
                     checkType pty fty "Argument is of the wrong type" (A.getVal p);
-                    checkparams (pexpty :: acc) (ftl, ptl)
+                    checkparams (pexpty :: acc) (ftl, ptl, isextern)
                 | _ -> error pos ("Function takes " ^ (string_of_int flen) ^ 
                                   ", but was given " ^ (string_of_int plen))
             in
-            checkparams [] (formals, params)
+            checkparams [] (formals, params, isextern)
      (**************** Var Expression ****************)
      | A.VarExp (var, _) -> transVar (venv, tenv, level, loop, var)
 

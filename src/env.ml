@@ -8,6 +8,10 @@ sig
                                Temp.label * (* Label *)
                                ty list * (* Formals *)
                                ty (* Result *)
+                 | ExtFunEntry of T.level *
+                                  Temp.label * 
+                                  ty list *
+                                  ty
 
     type tenv = ty Symbol.table
     type venv = enventry Symbol.table
@@ -28,6 +32,10 @@ and enventry = VarEntry of T.access * ty
                            Temp.label * (* Label *)
                            ty list * (* Formals *)
                            ty (* Result *)
+             | ExtFunEntry of T.level *
+                              Temp.label * 
+                              ty list *
+                              ty
 
 type tenv = ty Symbol.table
 type venv = enventry Symbol.table
@@ -45,19 +53,16 @@ let base_tenv () : ty Symbol.table =
 let base_venv level : enventry Symbol.table =
     let open Types in
     let empty = Symbol.empty () in
-    let tbl = add_builtin empty "print" (FunEntry (level, Temp.namedlabel "print", [Types.STRING], Types.UNIT)) in
-    (*
-    let tbl = add_builtin tbl "flush" (FunEntry ([], UNIT)) in
-    let tbl = add_builtin tbl "getchar" (FunEntry ([], STRING)) in
-    let tbl = add_builtin tbl "ord" (FunEntry ([STRING], INT)) in
-    let tbl = add_builtin tbl "chr" (FunEntry ([INT], STRING)) in
-    let tbl = add_builtin tbl "size" (FunEntry ([STRING], INT)) in
-    let tbl = add_builtin tbl "substring" (FunEntry ([STRING; INT; INT], STRING)) in
-    let tbl = add_builtin tbl "concat" (FunEntry ([STRING; STRING], STRING)) in
-    let tbl = add_builtin tbl "not" (FunEntry ([INT], INT)) in
-    let tbl = add_builtin tbl "exit" (FunEntry ([], UNIT)) in
-    tbl
-*)
+    let tbl = add_builtin empty "print"   (ExtFunEntry (level, Temp.namedlabel "print", [STRING], UNIT)) in
+    let tbl = add_builtin tbl   "flush"   (ExtFunEntry (level, Temp.namedlabel "flush", [], UNIT)) in
+    let tbl = add_builtin tbl   "getchar" (ExtFunEntry (level, Temp.namedlabel "getchar_", [], STRING)) in
+    let tbl = add_builtin tbl   "ord"     (ExtFunEntry (level, Temp.namedlabel "ord", [STRING], INT)) in
+    let tbl = add_builtin tbl   "chr"     (ExtFunEntry (level, Temp.namedlabel "chr", [INT], STRING)) in
+    let tbl = add_builtin tbl   "size"    (ExtFunEntry (level, Temp.namedlabel "size", [STRING], INT)) in
+    let tbl = add_builtin tbl "substring" (ExtFunEntry (level, Temp.namedlabel "substring", [STRING; INT; INT], STRING)) in
+    let tbl = add_builtin tbl   "concat"  (ExtFunEntry (level, Temp.namedlabel "concat", [STRING; STRING], STRING)) in
+    let tbl = add_builtin tbl   "not"     (ExtFunEntry (level, Temp.namedlabel "not", [INT], INT)) in
+    let tbl = add_builtin tbl   "exit"    (ExtFunEntry (level, Temp.namedlabel "exit", [], UNIT)) in
     tbl
 ;;
 
@@ -65,6 +70,7 @@ let print_venv venv =
     let pval v =
         match v with
         | VarEntry (_, ty) -> Types.str ty
+        | ExtFunEntry (_, _, formals, body)
         | FunEntry (_, _, formals, body) ->
                 "(" ^ (String.concat ", " 
                     (List.map Types.str formals)) ^ ") : " ^

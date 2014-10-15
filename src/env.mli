@@ -9,6 +9,10 @@ sig
                                Temp.label * (* Label *)
                                ty list * (* Formals *)
                                ty (* Result *)
+                 | ExtFunEntry of T.level *
+                                  Temp.label * 
+                                  ty list *
+                                  ty
 
     type tenv = ty Symbol.table
     type venv = enventry Symbol.table

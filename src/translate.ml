@@ -33,6 +33,7 @@ sig
     val breakExp : Temp.label -> exp
     val arrayExp : exp -> exp -> exp
     val callExp : Temp.label -> exp list -> level -> level -> exp
+    val callExtern : Temp.label -> exp list -> level -> level -> exp
 
     val arithExp : Absyn.oper -> exp -> exp -> exp
     val condExp : Absyn.oper -> exp -> exp -> exp
@@ -282,6 +283,11 @@ let callExp (name : Temp.label) (params : exp list) (lof : level) (locf : level)
     let params = List.map unEx params in
     (* TODO - calculate static link offset *)
     Ex (T.CALL (T.NAME name, (T.CONST 0) :: params))
+;;
+
+let callExtern (name : Temp.label) (params : exp list) (lof : level) (locf : level) =
+    let params = List.map unEx params in
+    Ex (T.CALL (T.NAME name, params))
 ;;
 
 let arithExp op expl expr =
