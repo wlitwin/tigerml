@@ -53,10 +53,10 @@ let genProgram (fragList : Fx86.frag list) : unit =
             let (fgraph, nodes) = Makegraph.instrs2graph instr in
             let (igraph, table) = Liveness.interferenceGraph fgraph in
             print_endline "--- LIVENESS IGRAPH ----";
-            Liveness.show (stdout, igraph);
+            (*Liveness.show (stdout, igraph);*)
             print_endline "--- GRAPH COLORING ----";
             let (cgraph, colors : Liveness.Graph.graph * int Temp.ITable.table) = Gcolor.color igraph Fx86.precolored Fx86.numRegisters in
-            Liveness.Graph.show cgraph; 
+            (*Liveness.Graph.show cgraph; *)
             print_endline "--- COLORS ---";
             (*
             Liveness.Graph.ITable.iter (fun k v -> 
@@ -90,9 +90,12 @@ let genProgram (fragList : Fx86.frag list) : unit =
                 ) [] instr
                 |> List.rev
             in
+            let result = Fx86.procEntryExit3 (frame, newInstrList) in
+            print_endline result.Fx86.prolog;
             List.iter (fun i ->
                 print_endline (Assem.format Fx86.string_of_temp i)
-            ) newInstrList;
+            ) result.Fx86.body;
+            print_endline result.Fx86.epilog;
             ()
     ) fragList
 ;;

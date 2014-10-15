@@ -33,7 +33,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
     let open Assem in
     let rec munchStm : T.stm -> unit = function
         (* mov [addr], e2 *)
-        | T.MOVE (T.MEM e1, e2) ->
+        (*| T.MOVE (T.MEM e1, e2) ->
                 emit (A.MOVE {assem="mov [`d0], `s0"; 
                               dst=munchExp e1; 
                               src=munchExp e2})
@@ -41,28 +41,54 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.MOVE {assem="mov `d0, [`s0]"; 
                               dst=munchExp e1; 
                               src=munchExp e2})
+                              *)
         | T.MOVE (e1, T.CONST i) ->
                 emit (A.OPER {assem="mov `d0, " ^ (itos i); 
                               dst=[munchExp e1]; 
                               src=[]; jump=None})
+        | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c)), e2) ->
+                emit (A.MOVE {assem="mov [`d0+" ^ (itos c) ^ "], `s0";
+                              dst=munchExp e1;
+                              src=munchExp e2;})
+        | T.MOVE (e1, (T.MEM (T.BINOP (T.PLUS, e2, T.CONST c)))) ->
+                emit (A.MOVE {assem="mov `d0, [`s0+" ^ (itos c) ^ "]";
+                              dst=munchExp e1;
+                              src=munchExp e2;})
         | T.MOVE (e1, e2) ->
                 emit (A.MOVE {assem="mov `d0, `s0"; dst=munchExp e1; src=munchExp e2})
         | T.LABEL lab ->
                 emit (A.LABEL {assem = (S.name lab) ^ ":"; lab})
         | T.JUMP (e1, [label]) ->
                 emit (A.OPER {assem="jmp `j0"; src=[]; dst=[]; jump=Some [label]})
-        | T.EXP (T.CALL (e, args)) ->
-                emit (A.OPER {assem = "CALL `s0";
-                              src = munchExp e :: munchArgs (0, args);
-                              (* dst should have any registers that get clobbered by
-                               * the assem instruction output about *)
-                              dst = (*calldefs*)[]; (* registers that get trashed *)
-                              jump = None})
         | exp -> Print_tree.print exp; failwith "Compiler - unhandled munchStm case"
-    and munchArgs (idx, arglst) =
-        []
+    and munchArgs (idx, arglist) =
+        match arglist with
+        | [] -> []
+        | hd :: tl ->
+                let tloc = munchExp hd in
+                emit (A.OPER {assem="push `s0"; src=[tloc]; dst=[]; jump=None});
+                tloc :: munchArgs (0, tl)
     and munchExp : Tree.exp -> Temp.temp = function
         | T.TEMP t -> t
+        | T.NAME lab ->
+                result (fun r ->
+                    emit (A.OPER {assem="mov `d0, " ^ (Symbol.name lab); src=[]; dst=[r]; jump=None})
+                )
+        | T.CALL (T.NAME lab, args) ->
+                emit (A.OPER {assem = "CALL " ^ (Symbol.name lab);
+                              src = munchArgs (0, args);
+                              (* dst should have any registers that get clobbered by
+                               * the assem instruction output about *)
+                              dst = (*calldefs*)[Frame_x86.eax]; (* registers that get trashed *)
+                              jump = None});
+                Frame_x86.eax
+                (* Need to emit the cleanup of the stack *)
+                
+        (*| T.LABEL lab -> 
+                result (fun r ->
+                    emit (T.OPER {assem="mov `d0, " ^ (Symbol.name lab); src=[]; dst=[r]; jump=None})
+                )
+                *)
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
         | T.BINOP (T.MUL, e1, e2) ->
@@ -83,5 +109,5 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | exp -> Print_tree.print (T.EXP exp); failwith "Compiler - unhandled munchExp case"
     in
     List.iter munchStm stmlist;
-    List.rev !ilist
+    Frame_x86.procEntryExit2 (frame, List.rev !ilist)
 ;;

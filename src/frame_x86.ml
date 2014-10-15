@@ -32,6 +32,14 @@ type frame =
 type frag = STRING of Temp.label * string
           | FUNCTION of Tree.stm * frame
 
+(* These lists must not overlap, and must include all registers
+ * that may appear inside assembly instructions 
+ *)
+let special_regs = [esp; ebp]
+let argregs = []
+let calleesave_regs = [ebx; ecx; edx]
+let callersave_regs = [eax]
+
 let precolored = 
     let colors = Temp.ITable.empty () in
     Temp.ITable.enter (colors, eax, ());
@@ -60,24 +68,42 @@ let string_of_temp temp =
     | None -> Temp.makestring temp
 ;;
 
+let genString (label, str) =
+    (Symbol.name label) ^ " .ascii " ^ str
+;;
+
 let procEntryExit1 (frame, stm) =
+    print_endline "==== FORMALS ====";
+    List.iter (fun loc ->
+        match loc with
+        | InReg reg -> print_endline (string_of_temp reg)
+        | InFrame offset -> print_endline ("Frame: " ^ (string_of_int offset))
+    ) frame.formals;
     T.seq ([
         T.LABEL frame.label;
         (* Save all registers *)
         T.MOVE (T.TEMP ebp, T.TEMP esp);
         (* Restore all registers, except eax *)
-    ] @ [stm])
-
-    (*T.EXP (T.CONST 0) *)
+    ] @ [stm] @ [
+        T.MOVE (T.TEMP esp, T.TEMP ebp);
+    ])
 ;;
 
-let procEntryExit2 (frame, instr) =
-    []
+(* Appends a sink instruction to the function body to
+ * tell the register allocator that certain registers
+ * are live on exit 
+ *)
+let procEntryExit2 (frame, body) =
+    body @ 
+    [Assem.OPER {Assem.assem=""; src=[eax;esp];
+     dst=[]; jump=None}]
 ;;
 
 type pe3_rec = {prolog: string; body: Assem.instr list; epilog: string}
 let procEntryExit3 (frame, instrs) = 
-    { prolog = ""; body = []; epilog = "" }
+    { prolog = ""; (*(Symbol.name frame.label) ^ ":"; *)
+      body = instrs; 
+      epilog = "ret" }
 ;;
 
 let addfragment frag =

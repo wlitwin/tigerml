@@ -38,6 +38,9 @@ module LG = Liveness.Graph
 module LGI = LG.ITable
 module TI = Temp.ITable
 
+let d_print_endline _ = ()
+let d_print_string _ = ()
+
 type color = int
 
 module SC = Set.Make(struct type t = int let compare = compare end)
@@ -46,10 +49,10 @@ type precolored = unit TI.table
 
 let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int) : (LG.graph * int TI.table) =
     let open Liveness in
-    print_endline "~~~~ ORIG GRAPH ~~~~";
-    LG.show igraph.graph;
+    d_print_endline "~~~~ ORIG GRAPH ~~~~";
+    (*LG.show igraph.graph;*)
     let orig_graph = LG.copy igraph.graph in
-    print_endline "~~~~ END ORIG GRAPH ~~~~";
+    d_print_endline "~~~~ END ORIG GRAPH ~~~~";
     let degree : int LGI.table = LGI.empty () in
     let removedStack : LG.node Stack.t = Stack.create () in
     (*let nodes = Graph.nodes igraph.graph in*)
@@ -94,7 +97,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
         let (node, minDeg) = (ref (List.hd nodes), ref 0) in
         let found = ref false in
         List.iter (fun n ->
-            print_string "MIN DEG: "; LG.show_node n;
+            (*d_print_string "MIN DEG: "; LG.show_node n;*)
             let d = LGI.look_exn degree n in
             if (not !found || d < !minDeg) then begin
                 node := n; minDeg := d; found := true;
@@ -106,8 +109,8 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
     let pickColor node =
         (* All previously added nodes should already be colored *)
         let adj = LG.adj node in
-        print_string "ADJ TO: "; LG.show_node node;
-        List.iter (fun n -> LG.show_node n) adj;
+        (*d_print_string "ADJ TO: "; LG.show_node node;*)
+        (*List.iter (fun n -> LG.show_node n) adj;*)
         let validColors = 
             List.fold_left (fun set n ->
                 match LGI.look(nodeColors, n) with
@@ -115,21 +118,21 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
                 | None -> set
             ) allColors adj 
         in
-        print_string "Available colors: ";
-        SC.iter (fun c -> print_string ((string_of_int c) ^ " ")) validColors;
+        d_print_string "Available colors: ";
+        SC.iter (fun c -> d_print_string ((string_of_int c) ^ " ")) validColors;
         if SC.is_empty validColors then (
-            print_endline "No more valid colors";
+            d_print_endline "No more valid colors";
             None
         ) else ( 
             let temp = LGI.look_exn igraph.gtemp node in
             match TI.look(precoloring, temp) with
             | Some _ ->
-                    print_endline "Temp is precolored";
+                    d_print_endline "Temp is precolored";
                     if not (SC.mem temp validColors) then (
-                        print_endline "Color not available";
+                        d_print_endline "Color not available";
                         None
                     ) else (
-                        print_endline "Can use precoloring";
+                        d_print_endline "Can use precoloring";
                         Some temp
                     )
             | None -> 
@@ -139,7 +142,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
 
     (* Start popping nodes and coloring them *)
     let rec colorNodes () =
-        print_endline "Coloring!";
+        d_print_endline "Coloring!";
         while not (Stack.is_empty removedStack) do
             let node = LGI.look_exn oldToNew (Stack.pop removedStack) in
             (* Pick node color *)
@@ -152,7 +155,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
                 raise (Failure "Optimistic Spill Failure")
                 (*LGI.enter(nodeColors, newNode, 0)*)
         done;
-        print_endline "DONE COLORING!";
+        d_print_endline "DONE COLORING!";
     (* Step 1 remove nodes until there is only one node in the graph *)
     and simplify () =
         if (LG.numNodes igraph.graph = 0) then
@@ -163,12 +166,12 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
             match pickMinDegree() with
             | Some (node, minDeg) ->
                     (* Step 2 remove node from the graph *)
-                    print_string "Removing node "; LG.show_node node;
-                    print_endline (string_of_int (List.length (LG.nodes igraph.graph)));
+                    (*d_print_string "Removing node "; LG.show_node node;*)
+                    d_print_endline (string_of_int (List.length (LG.nodes igraph.graph)));
                     Stack.push node removedStack;
                     LG.rm_node node;
-                    print_string "Node removed? ";
-                    print_endline (string_of_int (List.length (LG.nodes igraph.graph)));
+                    d_print_string "Node removed? ";
+                    d_print_endline (string_of_int (List.length (LG.nodes igraph.graph)));
                     updateDegrees();
                     simplify();
             | None -> raise (Failure "Spill Encountered") (* Spill *)

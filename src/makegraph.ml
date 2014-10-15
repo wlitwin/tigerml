@@ -1,6 +1,9 @@
 module A = Assem
 module F = Flowgraph
 
+let d_print_endline _ = ()
+let d_print_string _ = ()
+
 let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.FGraph.node list =
     let open A in
     let module FG = F.FGraph in
@@ -96,7 +99,8 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
     (* Unreverses node list *)
     let (_, nodeList, nodeInstrList) = List.fold_left add_edges (None, [], []) instrNodeList in
     List.iter create_tables nodeInstrList;
-    let nodes = FG.nodes g in
+    (*let nodes = FG.nodes g in*)
+    (*
     print_endline "USE TABLE";
     FG.ITable.iter (fun k v ->
         FG.show_node k;
@@ -116,5 +120,6 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
         print_endline "";
     ) def_tbl;
     print_endline "====MAKEGRAPH DONE====";
+    *)
     ({ F.control = g; def = def_tbl; use = use_tbl; ismove = move_tbl }, nodeList)
 ;;
