@@ -18,6 +18,8 @@ open Gcolor
 module A = Assem
 
 let genProgram (fragList : Fx86.frag list) : unit =
+    let strlst : string list ref = ref [] in
+    let append s = strlst := !strlst @ [s] in
     List.iter (fun frag ->
         print_endline "---- TRANSLATING FRAGMENT ----";
         match frag with
@@ -92,12 +94,26 @@ let genProgram (fragList : Fx86.frag list) : unit =
             in
             let result = Fx86.procEntryExit3 (frame, newInstrList) in
             print_endline result.Fx86.prolog;
+                append(result.Fx86.prolog);
             List.iter (fun i ->
-                print_endline (Assem.format Fx86.string_of_temp i)
+                let str = Assem.format Fx86.string_of_temp i in
+                print_endline str;
+                append (str);
             ) result.Fx86.body;
             print_endline result.Fx86.epilog;
+                append(result.Fx86.epilog);
             ()
-    ) fragList
+    ) fragList;
+
+    (* Write assembly to file *)
+    let out = open_out "prog.s" in
+    Printf.fprintf out "bits 32\nglobal __prog\n";
+    List.iter (fun str ->
+        Printf.fprintf out "%s\n" str
+    ) !strlst;
+    close_out out;
+    (* Try to compile and run it *)
+    print_endline ("Result: " ^ (string_of_int (Sys.command("./compile_and_run.sh"))));
 ;;
 
 let () =

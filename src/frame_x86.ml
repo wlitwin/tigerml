@@ -79,14 +79,22 @@ let procEntryExit1 (frame, stm) =
         | InReg reg -> print_endline (string_of_temp reg)
         | InFrame offset -> print_endline ("Frame: " ^ (string_of_int offset))
     ) frame.formals;
-    T.seq ([
-        T.LABEL frame.label;
-        (* Save all registers *)
-        T.MOVE (T.TEMP ebp, T.TEMP esp);
+    let numLocals = List.length !(frame.locals) in
+    let lst = [
+            T.LABEL frame.label;
+            (* Save all registers *)
+            T.MOVE (T.TEMP ebp, T.TEMP esp);
+        ] @ 
+        (if numLocals > 0 then
+            (* Create space for locals *)
+            [T.MOVE (T.TEMP esp, (T.BINOP (T.PLUS, T.TEMP esp, T.CONST (4*numLocals))))]
+        else [])
         (* Restore all registers, except eax *)
-    ] @ [stm] @ [
-        T.MOVE (T.TEMP esp, T.TEMP ebp);
-    ])
+        @ [stm] @ [
+            T.MOVE (T.TEMP esp, T.TEMP ebp);
+        ]
+    in
+    T.seq lst
 ;;
 
 (* Appends a sink instruction to the function body to
@@ -94,16 +102,18 @@ let procEntryExit1 (frame, stm) =
  * are live on exit 
  *)
 let procEntryExit2 (frame, body) =
-    body @ 
-    [Assem.OPER {Assem.assem=""; src=[eax;esp];
-     dst=[]; jump=None}]
+    match body with 
+    | hd :: tl ->
+        hd :: (Assem.OPER  {Assem.assem="push `s0"; dst=[]; src=[ebp]; jump=None}) :: tl
+        @ [Assem.OPER {Assem.assem=""; src=[eax;esp]; dst=[]; jump=None}]
+    | _ -> failwith "ICE"
 ;;
 
 type pe3_rec = {prolog: string; body: Assem.instr list; epilog: string}
 let procEntryExit3 (frame, instrs) = 
     { prolog = ""; (*(Symbol.name frame.label) ^ ":"; *)
       body = instrs; 
-      epilog = "ret" }
+      epilog = "leave\nret" }
 ;;
 
 let addfragment frag =
@@ -121,13 +131,13 @@ let newFrame label escapes =
                 build_formals (spots-1) offset (out :: acc) tl
             ) else (
                 let out = InFrame offset in
-                build_formals spots (offset+4) (out :: acc) tl
+                build_formals spots (offset-4) (out :: acc) tl
             )
     in
     let formals = 
         build_formals num_reg_params 0 [] escapes 
     in
-    { label = Temp.newlabel ();
+    { label;
       locals = ref [];
       local_offset = ref 0;
       formals }

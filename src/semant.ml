@@ -378,9 +378,13 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label 
                 ) (venv, SS.empty) lst
             in
             (* Process the function bodies now *)
-            let _ = List.iter (fun ((_, fields, result, body), _ : 'a A.fundec) ->
+            let _ = List.iter (fun ((name, fields, result, body), _ : 'a A.fundec) ->
                     (* Need to introduce all of the formals as variables now *)
                     let (slst, tlst) = fieldtypes fields in
+                    let level = match S.look(venv, name) with 
+                        | Some (Env.FunEntry (level, _, _, _)) -> level 
+                        | _ -> failwith "ICE" 
+                    in
                     let venv = List.fold_left2 (fun venv sym ty ->
                                 let vlocal = T.allocLocal level false in
                                 S.enter (venv, sym, Env.VarEntry (vlocal, ty))) 
@@ -452,8 +456,8 @@ and transTy (tenv, ty) =
 let transProg (exp : pos Absyn.exp) : F.frag list =
     let venv = Env.base_venv ()
     and tenv = Env.base_tenv ()
-    and entry = Temp.newlabel () 
-    and exit  = Temp.newlabel () in
+    and entry = Temp.namedlabel "__prog" in
+(*    and exit  = Temp.newlabel () in*)
     let firstLevel = T.newLevel T.outermost entry [] in
     let (ir, typ) = transExp (venv, tenv, firstLevel, None, exp) in
     print_endline ("Final program type: " ^ (Types.str typ)); 

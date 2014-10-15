@@ -65,6 +65,11 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         match arglist with
         | [] -> []
         | hd :: tl ->
+            match hd with
+            | T.CONST c -> 
+                    emit (A.OPER {assem="push " ^ (itos c); src=[]; dst=[]; jump=None});
+                    munchArgs(0, tl)
+            | _ ->
                 let tloc = munchExp hd in
                 emit (A.OPER {assem="push `s0"; src=[tloc]; dst=[]; jump=None});
                 tloc :: munchArgs (0, tl)
@@ -81,8 +86,10 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                                * the assem instruction output about *)
                               dst = (*calldefs*)[Frame_x86.eax]; (* registers that get trashed *)
                               jump = None});
-                Frame_x86.eax
                 (* Need to emit the cleanup of the stack *)
+                emit (A.OPER {assem="add esp, " ^ (itos ((List.length args)*4)); 
+                              src=[]; dst=[Frame_x86.esp]; jump=None});
+                Frame_x86.eax
                 
         (*| T.LABEL lab -> 
                 result (fun r ->
@@ -91,6 +98,10 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 *)
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
+        | T.BINOP (T.PLUS, e1, T.CONST c) ->
+            let loc = munchExp e1 in
+            emit (A.OPER {assem="add `d0, " ^ (itos c); src=[]; dst=[loc]; jump=None});
+            loc
         | T.BINOP (T.MUL, e1, e2) ->
             result (fun r ->
                 let e1 = munchExp e1
