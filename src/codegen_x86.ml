@@ -31,6 +31,18 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
     in
     let itos = string_of_int in
     let open Assem in
+    let rel_str = function 
+        | T.EQ -> "jz"
+        | T.NE -> "jnz"
+        | T.LT -> "jl"
+        | T.LE -> "jle"
+        | T.GT -> "jg"
+        | T.GE -> "jge"
+        | T.ULT -> "jb"
+        | T.ULE -> "jbe"
+        | T.UGT -> "ja"
+        | T.UGE -> "jae"
+    in
     let rec munchStm : T.stm -> unit = function
         (* mov [addr], e2 *)
         (*| T.MOVE (T.MEM e1, e2) ->
@@ -42,6 +54,16 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                               dst=munchExp e1;
                               src=munchExp e2})
                               *)
+        | T.CJUMP (op, T.CONST c1, T.CONST c2, tlab, flab) ->
+                let temp = T.TEMP (Temp.newtemp()) in
+                munchStm (T.MOVE (temp, T.CONST c1));
+                munchStm (T.CJUMP (op, temp, T.CONST c2, tlab, flab))
+        | T.CJUMP (op, T.TEMP e1, T.CONST c2, tlab, flab) ->
+                emit (A.OPER {assem="cmp `s0, " ^ (itos c2); dst=[]; src=[e1]; jump=None});
+                emit (A.OPER {assem=(rel_str op) ^ " " ^ (Symbol.name tlab); dst=[]; src=[]; jump=Some[tlab; flab]})
+        | T.CJUMP (op, e1, e2, tlab, flab) ->
+                emit (A.OPER {assem="cmp `s0, `s1"; dst=[]; src=[munchExp e1; munchExp e2]; jump=None});
+                emit (A.OPER {assem=(rel_str op) ^ " " ^ (Symbol.name tlab); dst=[]; src=[]; jump=Some[tlab; flab]})
         | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c1)), T.CONST c2) ->
                 emit (A.OPER {assem="mov dword [`d0+" ^ (itos c1) ^ "], " ^ (itos c2);
                               dst=[munchExp e1];

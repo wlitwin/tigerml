@@ -210,11 +210,11 @@ let ifExp c t e =
     and r = Temp.newtemp () in
     Ex (ESEQ (seq 
             [c (t_lbl, f_lbl);
-             LABEL t_lbl;
-             MOVE (TEMP r, t);
-             JUMP (NAME d_lbl, [d_lbl]);
              LABEL f_lbl;
              MOVE (TEMP r, e);
+             JUMP (NAME d_lbl, [d_lbl]);
+             LABEL t_lbl;
+             MOVE (TEMP r, t);
              JUMP (NAME d_lbl, [d_lbl]);
              LABEL d_lbl],
             TEMP r));
