@@ -12,7 +12,7 @@ sig
     type tenv = ty Symbol.table
     type venv = enventry Symbol.table
 
-    val base_venv  : unit -> venv
+    val base_venv  : T.level -> venv
     val base_tenv  : unit -> tenv
     val print_venv : venv -> unit
     val print_tenv : tenv -> unit
@@ -42,11 +42,11 @@ let base_tenv () : ty Symbol.table =
     add_builtin tbl "string" Types.STRING
 ;;
 
-let base_venv () : enventry Symbol.table =
+let base_venv level : enventry Symbol.table =
     let open Types in
     let empty = Symbol.empty () in
+    let tbl = add_builtin empty "print" (FunEntry (level, Temp.namedlabel "print", [Types.STRING], Types.UNIT)) in
     (*
-    let tbl = add_builtin empty "print" (FunEntry ([STRING], UNIT)) in
     let tbl = add_builtin tbl "flush" (FunEntry ([], UNIT)) in
     let tbl = add_builtin tbl "getchar" (FunEntry ([], STRING)) in
     let tbl = add_builtin tbl "ord" (FunEntry ([STRING], INT)) in
@@ -58,8 +58,7 @@ let base_venv () : enventry Symbol.table =
     let tbl = add_builtin tbl "exit" (FunEntry ([], UNIT)) in
     tbl
 *)
-    empty
-    
+    tbl
 ;;
 
 let print_venv venv =

@@ -13,7 +13,7 @@ sig
     type tenv = ty Symbol.table
     type venv = enventry Symbol.table
 
-    val base_venv  : unit -> venv
+    val base_venv  : T.level -> venv
     val base_tenv  : unit -> tenv
     val print_venv : venv -> unit
     val print_tenv : tenv -> unit

@@ -24,6 +24,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
         print_endline "---- TRANSLATING FRAGMENT ----";
         match frag with
         | Fx86.STRING (label, str) ->
+            append(Fx86.genString(label, str));
             print_endline ("STRING: " ^ (Symbol.name label) ^ " " ^ str)
         | Fx86.FUNCTION (stm, frame) ->
             Print_tree.print stm;     
@@ -107,7 +108,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
 
     (* Write assembly to file *)
     let out = open_out "prog.s" in
-    Printf.fprintf out "bits 32\nglobal __prog\n";
+    Printf.fprintf out "bits 32\nglobal __prog\nextern print\n";
     List.iter (fun str ->
         Printf.fprintf out "%s\n" str
     ) !strlst;

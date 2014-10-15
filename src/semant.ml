@@ -372,7 +372,13 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label 
                     in
                     let funlabel = Temp.newlabel () in
                     (* TODO - XXX - This is wrong fix the bool list *)
-                    let funlevel = T.newLevel level funlabel [] in
+                    let formals = 
+                        List.fold_left (fun acc ((_, esc, _), _ : pos A.field) ->
+                            !esc :: acc 
+                        ) [] fields |> List.rev
+                    in
+                    let funlevel = T.newLevel level funlabel formals in
+                    (* Add formals to the environment *)
                     let acc = S.enter (acc, name, Env.FunEntry (funlevel, funlabel, ftype, rtype)) in
                     (acc, SS.add strname seen)
                 ) (venv, SS.empty) lst
@@ -385,10 +391,11 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label 
                         | Some (Env.FunEntry (level, _, _, _)) -> level 
                         | _ -> failwith "ICE" 
                     in
-                    let venv = List.fold_left2 (fun venv sym ty ->
-                                let vlocal = T.allocLocal level false in
-                                S.enter (venv, sym, Env.VarEntry (vlocal, ty))) 
-                                venv slst tlst
+                    let venv = 
+                        let formals = T.formals level in
+                        List.fold_left2 (fun venv (sym, ty) access ->
+                            S.enter (venv, sym, Env.VarEntry (access, ty))
+                        ) venv (List.combine slst tlst) formals
                     in
                     let (bexp, tybody) = transExp (venv, tenv, level, loop, body) in
                     let tyres = match result with
@@ -454,11 +461,11 @@ and transTy (tenv, ty) =
 ;;
 
 let transProg (exp : pos Absyn.exp) : F.frag list =
-    let venv = Env.base_venv ()
-    and tenv = Env.base_tenv ()
-    and entry = Temp.namedlabel "__prog" in
-(*    and exit  = Temp.newlabel () in*)
+    let entry = Temp.namedlabel "__prog" in
     let firstLevel = T.newLevel T.outermost entry [] in
+    let venv = Env.base_venv firstLevel 
+    and tenv = Env.base_tenv () in
+(*    and exit  = Temp.newlabel () in*)
     let (ir, typ) = transExp (venv, tenv, firstLevel, None, exp) in
     print_endline ("Final program type: " ^ (Types.str typ)); 
     T.print ir;

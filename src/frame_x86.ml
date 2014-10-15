@@ -69,7 +69,10 @@ let string_of_temp temp =
 ;;
 
 let genString (label, str) =
-    (Symbol.name label) ^ " .ascii " ^ str
+    (Symbol.name label) ^ 
+    " dd " ^ (string_of_int (String.length str)) ^ "\n" ^
+    " db `" ^ (String.escaped str) ^ "`"
+
 ;;
 
 let procEntryExit1 (frame, stm) =
@@ -116,10 +119,6 @@ let procEntryExit3 (frame, instrs) =
       epilog = "leave\nret" }
 ;;
 
-let addfragment frag =
-    ()
-;;
-
 let newFrame label escapes =
     (* Make a list of all the formals *)
     let num_reg_params = 0 in (* Pass all parameters on the stack for now *)
@@ -131,11 +130,11 @@ let newFrame label escapes =
                 build_formals (spots-1) offset (out :: acc) tl
             ) else (
                 let out = InFrame offset in
-                build_formals spots (offset-4) (out :: acc) tl
+                build_formals spots (offset+4) (out :: acc) tl
             )
     in
     let formals = 
-        build_formals num_reg_params 0 [] escapes 
+        build_formals num_reg_params 4 [] escapes 
     in
     { label;
       locals = ref [];
