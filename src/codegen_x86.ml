@@ -60,6 +60,9 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.LABEL {assem = (S.name lab) ^ ":"; lab})
         | T.JUMP (e1, [label]) ->
                 emit (A.OPER {assem="jmp `j0"; src=[]; dst=[]; jump=Some [label]})
+        | T.EXP e ->
+                let e = munchExp e in
+                emit (A.MOVE {assem="mov `d0, `s0"; dst=e; src=e;})
         | exp -> Print_tree.print exp; failwith "Compiler - unhandled munchStm case"
     and munchArgs (idx, arglist) =
         match arglist with
