@@ -38,8 +38,8 @@ module LG = Liveness.Graph
 module LGI = LG.ITable
 module TI = Temp.ITable
 
-let d_print_endline _ = ()
-let d_print_string _ = ()
+let d_print_endline = print_endline
+let d_print_string = print_string
 
 type color = int
 
@@ -111,6 +111,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
         let adj = LG.adj node in
         (*d_print_string "ADJ TO: "; LG.show_node node;*)
         (*List.iter (fun n -> LG.show_node n) adj;*)
+        print_endline ("Coloring: " ^ (Frame_x86.string_of_temp (LGI.look_exn igraph.gtemp node)));
         let validColors = 
             List.fold_left (fun set n ->
                 match LGI.look(nodeColors, n) with
@@ -120,6 +121,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
         in
         d_print_string "Available colors: ";
         SC.iter (fun c -> d_print_string ((string_of_int c) ^ " ")) validColors;
+        d_print_endline "";
         if SC.is_empty validColors then (
             d_print_endline "No more valid colors";
             None
@@ -136,7 +138,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
                         Some temp
                     )
             | None -> 
-                Some (SC.choose validColors)
+                Some (List.hd (List.rev (SC.elements validColors)))(*SC.choose validColors*)
         )
     in
 
@@ -152,6 +154,7 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
                 (* Rewrite program to put loads/stores around node *)
                 (* Remake the liveness graph *)
                 (* Redo coloring *)
+                print_endline ("Couldn't color: " ^ (Frame_x86.string_of_temp (LGI.look_exn igraph.gtemp node)));
                 raise (Failure "Optimistic Spill Failure")
                 (*LGI.enter(nodeColors, newNode, 0)*)
         done;
@@ -167,11 +170,8 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
             | Some (node, minDeg) ->
                     (* Step 2 remove node from the graph *)
                     (*d_print_string "Removing node "; LG.show_node node;*)
-                    d_print_endline (string_of_int (List.length (LG.nodes igraph.graph)));
                     Stack.push node removedStack;
                     LG.rm_node node;
-                    d_print_string "Node removed? ";
-                    d_print_endline (string_of_int (List.length (LG.nodes igraph.graph)));
                     updateDegrees();
                     simplify();
             | None -> raise (Failure "Spill Encountered") (* Spill *)

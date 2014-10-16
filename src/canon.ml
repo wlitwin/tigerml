@@ -27,7 +27,7 @@ let linearize (stm0 : T.stm) : T.stm list =
                     ((stms % stms'), e :: el)
                 else begin
                     let t = Temp.newtemp () in
-                    (stms % T.MOVE (T.TEMP t, e) % stms', (T.TEMP t) :: el)
+                    (stms % (T.MOVE (T.TEMP t, e) % stms'), (T.TEMP t) :: el)
                 end
         | [] -> (nop, [])
 
@@ -51,6 +51,11 @@ let linearize (stm0 : T.stm) : T.stm list =
                     | [a; b] -> T.CJUMP (p, a, b, t, f) | _ -> assert false
                 in
                 reorder_stm ([a; b], build_exp)
+        | T.MOVE (T.MEM e, b) ->
+                let build_exp = function
+                    | [e; b] -> T.MOVE (T.MEM e, b) | _ -> assert false
+                in
+                reorder_stm ([e; b], build_exp)
         | T.MOVE (T.TEMP t, T.CALL (e, el)) ->
                 let build_exp = function
                     | (e :: el) -> T.MOVE (T.TEMP t, T.CALL (e, el)) | _ -> assert false
@@ -61,11 +66,6 @@ let linearize (stm0 : T.stm) : T.stm list =
                     | [b] -> T.MOVE (T.TEMP t, b) | _ -> assert false
                 in
                 reorder_stm ([b], build_exp)
-        | T.MOVE (T.MEM e, b) ->
-                let build_exp = function
-                    | [e; b] -> T.MOVE (T.MEM e, b) | _ -> assert false
-                in
-                reorder_stm ([e; b], build_exp)
         | T.MOVE (T.ESEQ (s, e), b) ->
                 do_stm (T.SEQ (s, T.MOVE (e, b)))
         | T.EXP (T.CALL (e, el)) ->

@@ -174,7 +174,7 @@ let fieldVar recExp flst fname =
     let fieldOffset = offset 0 flst in
     (* TODO - Check if record is nil *)
     Ex (T.MEM (T.BINOP (T.PLUS, 
-                        T.MEM (unEx recExp), 
+                        unEx recExp, 
                         T.CONST (fieldOffset * Frame.wordsize))))
 ;;
 
@@ -232,9 +232,7 @@ let seqExp lst =
 
 let recordExp fields = 
     let flen = List.length fields in
-    (*
     let r = Temp.newtemp () in
-
     let (_, initExps) = List.fold_left
         (fun (off, lst) fexp ->
             let fexp = unEx fexp in
@@ -244,19 +242,11 @@ let recordExp fields =
             (off + Frame.wordsize, init :: lst)
         ) (0, []) fields
     in
-    (*
     Ex (T.ESEQ (
         T.seq 
-            ((T.MOVE (T.TEMP r, Frame.externalCall ("malloc", [T.CONST (flen*Frame.wordsize)])))
+            ((T.MOVE (T.TEMP r, Frame.externalCall ("allocRecord", [T.CONST (flen*Frame.wordsize)])))
             ::
             initExps), T.TEMP r))
-            *)
-
-    let alloc = T.MOVE (T.TEMP r, call) in
-    *)
-    (*let call = Frame.externalCall("allocRecord", [T.CONST (flen*Frame.wordsize)]) in*)
-    Ex (T.CALL (T.NAME (Temp.namedlabel "allocRecord"), [T.CONST 12121212])) (*(flen*Frame.wordsize)]))*)
-    (*Ex (T.CONST 51515151)*)
 ;;
 
 let assignExp left right =

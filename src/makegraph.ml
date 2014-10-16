@@ -51,7 +51,7 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
                 FG.mk_edge { FG.from = node; to_ = next }
         | (None, A.OPER { assem; dst = _; src = _; jump = Some jumpList }) -> 
                 add_jumps node jumpList
-        | (None, A.OPER _) | (None, A.MOVE _) | (None, A.LABEL _) -> ()
+        | (None, _) -> () (* No next node, so no edges need to be added *)
         end;
         (*
         print_endline "AFTERGRAPH";
@@ -76,7 +76,6 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
         | (node, A.OPER {assem; dst; src; jump}) ->
                 FG.ITable.enter (use_tbl, node, []);
                 FG.ITable.enter (def_tbl, node, []);
-                (*add_all_to_table use_tbl node dst;*)
                 add_all_to_table use_tbl node src;
                 add_all_to_table def_tbl node dst;
                 FG.ITable.enter (move_tbl, node, false);
@@ -100,17 +99,21 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
     let (_, nodeList, nodeInstrList) = List.fold_left add_edges (None, [], []) instrNodeList in
     List.iter create_tables nodeInstrList;
     (*let nodes = FG.nodes g in*)
-    (*
-    print_endline "USE TABLE";
+    print_endline "USE+DEF TABLES";
     FG.ITable.iter (fun k v ->
         FG.show_node k;
-        print_string "  ";
+        print_string "USE: ";
+        List.iter (fun t ->
+            print_string ((Temp.makestring t) ^ " ")
+        ) v;
+        print_string "\nDEF: ";
+        let v = FG.ITable.look_exn def_tbl k in
         List.iter (fun t ->
             print_string ((Temp.makestring t) ^ " ")
         ) v;
         print_endline "";
     ) use_tbl;
-    print_endline "DEF TABLE";
+    (*print_endline "DEF TABLE";
     FG.ITable.iter (fun k v ->
         FG.show_node k;
         print_string "  ";
@@ -119,7 +122,7 @@ let instrs2graph (instrs : Assem.instr list) : Flowgraph.flowgraph * Flowgraph.F
         ) v;
         print_endline "";
     ) def_tbl;
-    print_endline "====MAKEGRAPH DONE====";
     *)
+    print_endline "====MAKEGRAPH DONE====";
     ({ F.control = g; def = def_tbl; use = use_tbl; ismove = move_tbl }, nodeList)
 ;;

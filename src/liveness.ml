@@ -66,9 +66,14 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
             (* Update the in[] map, so we can use it below *)
             FGI.enter (liveInSet, n, inSet);       
             let succ = FG.succ n in
-            let outSet = List.fold_left (fun out s ->
+            (*let outSet = List.fold_left (fun out s ->
                     ST.union out (FGI.look_exn liveInSet s)
                 ) outSet succ
+            in
+            *)
+            let outSet = List.fold_left (fun succIn s ->
+                    ST.union succIn (FGI.look_exn liveInSet s)
+                ) ST.empty succ
             in
             (* Update the out[] map *)
             FGI.enter (liveOutSet, n, outSet);
@@ -106,7 +111,6 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
     print_endline "DONE";
     *)
     (*let liveMap : ST.t FGI.table = FGI.union_exn liveInSet liveOutSet in*)
-    (*
     let liveMap : ST.t FGI.table = 
         let liveMap = FGI.clone liveInSet in
         FGI.iter (fun k v ->
@@ -116,7 +120,6 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         ) liveOutSet;
         liveMap
     in
-    *)
     (* liveInSet and liveOutSet now have the liveIn + liveOut sets for all nodes *)
     let createIGraph () =
         let g = Graph.newGraph () in
@@ -142,14 +145,14 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
     *)
                 ST.iter (fun temp ->
                     let tn = getNode temp in
-                    (*let ismove = FGI.look_exn fgraph.ismove dn in
+                    (*
+                    let ismove = FGI.look_exn fgraph.ismove dn in
                     if ismove then begin
                         if not (List.mem temp uses) then (
                             Graph.mk_edge {from = dn; to_ = tn};
                             Graph.mk_edge {from = tn; to_ = dn}
                         )
-                    end else begin
-                        *)
+                    end else begin*)
                         Graph.mk_edge {from = dn; to_ = tn};
                         Graph.mk_edge {from = tn; to_ = dn}
                     (*end*)

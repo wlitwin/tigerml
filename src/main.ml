@@ -18,6 +18,51 @@ open Gcolor
 module A = Assem
 
 let genProgram (fragList : Fx86.frag list) : unit =
+    (*SEQ(
+        * ---+---+MOVE(
+            * ---+---+-TEMP t0,
+            * ---+---+-ESEQ(
+                * ---+---+--MOVE(
+                    * ---+---+---MEM(
+                        * ---+---+---+BINOP(PLUS,
+                        * ---+---+---+-TEMP t5,
+                        * ---+---+---+-CONST -16)),
+                        * ---+---+---CONST 12),
+                        * ---+---+--ESEQ(
+                            * ---+---+---MOVE(
+                                * ---+---+---+MEM(
+                                    * ---+---+---+-BINOP(PLUS,
+                                    * ---+---+---+--TEMP t5,
+                                    * ---+---+---+--CONST -16)),
+                                    * ---+---+---+CALL(
+                                        * ---+---+---+-NAME L1,
+                                        * ---+---+---+--CONST 0,
+                                        * ---+---+---+--CONST 20)),
+                                        * ---+---+---CONST 0))),
+                                        * *)
+    (*
+    let module T = Tree in
+    let t1 = Temp.newtemp()
+    and t2 = Temp.newtemp() in
+    let tree = T.MOVE (T.TEMP t1,
+                       T.ESEQ (T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP t2, T.CONST ~-16)), T.CONST 12),
+                               T.ESEQ (T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP t2, T.CONST ~-16)),
+                                              T.CALL (T.NAME (Temp.namedlabel "blah"), [T.CONST 0; T.CONST 20])),
+                                       T.CONST 0)))
+    in
+    Print_tree.print tree;
+    (*
+    let stms = Canon.linearize tree in
+    List.iter (fun s ->
+        Print_tree.print s;
+    ) stms;
+    *)
+    let frame = Fx86.newFrame (Temp.namedlabel "main") [] in
+    let instrs = Cx86.codegen frame tree in
+    List.iter (fun i ->
+        print_endline (Assem.format Fx86.string_of_temp i)
+    ) instrs;
+    *)
     let strlst : string list ref = ref [] in
     let append s = strlst := !strlst @ [s] in
     List.iter (fun frag ->
@@ -56,7 +101,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
             let (fgraph, nodes) = Makegraph.instrs2graph instr in
             let (igraph, table) = Liveness.interferenceGraph fgraph in
             print_endline "--- LIVENESS IGRAPH ----";
-            (*Liveness.show (stdout, igraph);*)
+            Liveness.show (stdout, igraph);
             print_endline "--- GRAPH COLORING ----";
             let (cgraph, colors : Liveness.Graph.graph * int Temp.ITable.table) = Gcolor.color igraph Fx86.precolored Fx86.numRegisters in
             (*Liveness.Graph.show cgraph; *)
@@ -81,8 +126,8 @@ let genProgram (fragList : Fx86.frag list) : unit =
                 | MOVE {assem; dst; src} ->
                         let newDst = replaceTemp dst
                         and newSrc = replaceTemp src in
-                        if newDst = newSrc then None
-                        else Some (MOVE {assem; dst=replaceTemp dst; src=replaceTemp src})
+                        (*if newDst = newSrc then None
+                        else*) Some (MOVE {assem; dst=replaceTemp dst; src=replaceTemp src})
                 | _ -> Some instr
             in
             let newInstrList = 

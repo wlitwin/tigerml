@@ -80,7 +80,15 @@ struct
     ;;
 
     let iter f (table : 'a table) =
-        Hashtbl.iter f table
+        let keys = ref [] in
+        Hashtbl.iter (fun k _ ->
+            keys := k :: !keys
+        ) table;
+        let keys = List.sort compare !keys in
+        List.iter (fun k ->
+            let v = look_exn table k in
+            f k v
+        ) keys
     ;;
 
     let print (strKey : key -> string) (strVal : 'a -> string) (tbl : 'a table) : unit =
