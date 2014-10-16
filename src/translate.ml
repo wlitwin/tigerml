@@ -158,10 +158,10 @@ let simpleVar (varlvl, faccess) curlevel : exp =
 let subscriptVar baseExp indexExp =
     (* TODO add code to check for out of bounds access *)
     Ex (T.MEM (T.BINOP (T.PLUS, 
-                        T.MEM (unEx baseExp), 
-                        T.MEM (T.BINOP (T.MUL, 
-                                        (unEx indexExp), 
-                                        T.CONST Frame.wordsize)))))
+                        unEx baseExp, 
+                        T.BINOP (T.MUL, 
+                                 unEx indexExp, 
+                                 T.CONST Frame.wordsize))))
 ;;
 
 let fieldVar recExp flst fname =

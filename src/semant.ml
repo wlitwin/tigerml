@@ -265,7 +265,9 @@ and transExp (venv, tenv, level, loop, exp) : expty =
              let inc_exp = A.OpExp ((A.VarExp (vlo_exp, pos), A.PlusOp, A.IntExp (1, pos)), pos) in
              let plus_eq = A.AssignExp ((vlo_exp, inc_exp), pos) in
              let vlo_dec = A.VarDec ((vlo, esc, Some (S.symbol "int", pos), lo), pos)
-             and vhi_dec = A.VarDec ((vhi, ref false, Some (S.symbol "int", pos), lo), pos) in
+             (* TODO does this escape? *)
+             and vhi_dec = A.VarDec ((vhi, ref true, Some (S.symbol "int", pos), hi), pos) in
+             (* Le -> Lt maybe *)
              let while_cond = A.OpExp ((A.VarExp (vlo_exp, pos), A.LeOp, A.VarExp (vhi_exp, pos)), pos) in
              let while_exp =
                  A.LetExp (([vlo_dec; vhi_dec],

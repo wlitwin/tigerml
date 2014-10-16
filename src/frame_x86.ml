@@ -176,5 +176,5 @@ let exp access texp : Tree.exp =
 ;;
 
 let externalCall (s, args) =
-    T.CALL (T.NAME (Temp.namedlabel s), args)
+    T.CALL (T.NAME (Temp.namedlabel s), List.rev args)
 ;;

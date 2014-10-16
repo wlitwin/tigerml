@@ -2,14 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int *initArray(int size, int init)
-{
-    int i;
-    int *a = (int *)malloc(size*sizeof(int));
-    for(i=0;i<size;i++) a[i]=init;
-    return a;
-}
-
 #define SAVE \
     unsigned int old_ebx, old_ecx, old_edx; \
     __asm__ volatile ("\t movl %%ebx,%0" : "=r"(old_ebx)); \
@@ -20,6 +12,17 @@ int *initArray(int size, int init)
     __asm__ volatile ("\t movl %0, %%ebx" :: "r"(old_ebx)); \
     __asm__ volatile ("\t movl %0, %%ecx" :: "r"(old_ecx)); \
     __asm__ volatile ("\t movl %0, %%edx" :: "r"(old_edx)); \
+
+int *initArray(int size, int init)
+{
+    SAVE;
+    printf("ARRAY [%d] of %d\n", size, init);
+    int i;
+    int *a = (int *)malloc(size*sizeof(int));
+    for(i=0;i<size;i++) a[i]=init;
+    RESTORE;
+    return a;
+}
 
 int *allocRecord(int size)
 {
