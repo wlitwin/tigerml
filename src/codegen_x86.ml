@@ -117,14 +117,14 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | hd :: tl ->
             match hd with
             | T.CONST c ->
-                    emit (A.OPER {assem="push " ^ (itos c); src=[]; dst=[Frame_x86.esp]; jump=None});
+                    emit (A.OPER {assem="push " ^ (itos c); src=[Frame_x86.esp]; dst=[Frame_x86.esp]; jump=None});
                     munchArgs(0, tl)
             | T.NAME lab ->
-                    emit (A.OPER {assem="push " ^ (Symbol.name lab); src=[]; dst=[Frame_x86.esp]; jump=None});
+                    emit (A.OPER {assem="push " ^ (Symbol.name lab); src=[Frame_x86.esp]; dst=[Frame_x86.esp]; jump=None});
                     munchArgs(0, tl)
             | _ ->
                 let tloc = munchExp hd in
-                emit (A.OPER {assem="push `s0"; src=[tloc]; dst=[Frame_x86.esp]; jump=None});
+                emit (A.OPER {assem="push `s0"; src=[tloc; Frame_x86.esp]; dst=[Frame_x86.esp]; jump=None});
                 tloc :: munchArgs (0, tl)
     and binopExp (op, e1, e2) =
         let opstr = match op with

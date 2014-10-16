@@ -237,7 +237,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
                             (fexp :: acc)
                         ) [] fields
                     in
-                    (T.recordExp fields, tyrec)
+                    (T.recordExp (List.rev fields), tyrec)
             | _ -> error pos ("Not of record type: " ^ (Types.str (actual_ty tyrec)))
             )
      (**************** Assign Expression ****************)

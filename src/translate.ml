@@ -169,13 +169,13 @@ let fieldVar recExp flst fname =
         | [] -> acc
         | (hd, _) :: tl ->
                 if fname = hd then acc
-                else offset (acc+4) tl
+                else offset (acc+Frame.wordsize) tl
     in
     let fieldOffset = offset 0 flst in
     (* TODO - Check if record is nil *)
     Ex (T.MEM (T.BINOP (T.PLUS, 
                         unEx recExp, 
-                        T.CONST (fieldOffset * Frame.wordsize))))
+                        T.CONST fieldOffset)))
 ;;
 
 let intExp num =
@@ -236,7 +236,7 @@ let recordExp fields =
     let (_, initExps) = List.fold_left
         (fun (off, lst) fexp ->
             let fexp = unEx fexp in
-            let init = T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP r, T.CONST (off*Frame.wordsize))), 
+            let init = T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP r, T.CONST off)), 
                                fexp) 
             in
             (off + Frame.wordsize, init :: lst)

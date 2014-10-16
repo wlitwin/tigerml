@@ -163,7 +163,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
     ) !strlst;
     close_out out;
     (* Try to compile and run it *)
-    print_endline ("Result: " ^ (string_of_int (Sys.command("./compile_and_run.sh"))));
+    print_endline ("Error code: " ^ (string_of_int (Sys.command("./compile_and_run.sh"))));
 ;;
 
 let () =
