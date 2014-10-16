@@ -163,9 +163,10 @@ and transExp (venv, tenv, level, loop, exp) : expty =
                     let tyleft = actual_ty tyleft
                     and tyright = actual_ty tyright in
                     (match (tyleft, tyright) with
+                    | (Types.STRING, Types.STRING) ->
+                            (T.callExtern (Temp.namedlabel "stringEqual") [lexpty; rexpty] level level, Types.INT)
                     | (Types.INT, Types.INT)
                     | (Types.NIL, Types.NIL)
-                    | (Types.STRING, Types.STRING)
                     | (Types.NIL, Types.RECORD _)
                     | (Types.RECORD _, Types.NIL)
                     | (Types.ARRAY _, Types.ARRAY _)

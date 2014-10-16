@@ -64,6 +64,7 @@ let base_venv level : enventry Symbol.table =
     let tbl = add_builtin tbl   "not"     (ExtFunEntry (level, Temp.namedlabel "not", [INT], INT)) in
     let tbl = add_builtin tbl   "exit"    (ExtFunEntry (level, Temp.namedlabel "exit", [], UNIT)) in
     let tbl = add_builtin tbl   "blah"    (ExtFunEntry (level, Temp.namedlabel "blah", [], STRING)) in
+    let tbl = add_builtin tbl "stringEqual" (ExtFunEntry (level, Temp.namedlabel "stringEqual", [STRING; STRING], INT)) in
     tbl
 ;;
 
