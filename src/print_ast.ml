@@ -1,6 +1,7 @@
 module A = Absyn
 
 let print tree =
+    print_endline "PRINTING!";
     let say s : unit = print_string s in
     let sayln s : unit = say s; say "\n" in
     let rec indent i : unit = 

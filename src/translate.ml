@@ -142,12 +142,17 @@ let simpleVar (varlvl, faccess) curlevel : exp =
     else (
         (* Create nested MEM's *)
         let rec generate_mems acc texp lvl =
+
             if lvl.uniq == varlvl.uniq then (
                 Frame.exp faccess texp  
             ) else (
                 let sloc = List.hd (Frame.formals lvl.frame) in
                 let texp = Frame.exp acc texp in 
-                generate_mems sloc texp lvl
+                let prevLevel = match lvl.prev with
+                              | Some lvl -> lvl
+                              | None -> failwith "ICE"
+                in
+                generate_mems sloc texp prevLevel
             )
         in
         let sloc = List.hd (Frame.formals curlevel.frame) in

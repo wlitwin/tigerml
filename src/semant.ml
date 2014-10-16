@@ -110,8 +110,12 @@ let rec actual_ty : Types.ty -> Types.ty = function
 (* Break statements need to know if they're in a loop or not *)
 let rec transVar (venv, tenv, level, loop, var) : expty = match var with
     | A.SimpleVar (sym, pos) -> 
+            print_endline "SIMPLE VAR!\n";
+            flush(stdout);
             (match S.look (venv, sym) with
             | Some (Env.VarEntry (acc, ty)) -> 
+                    print_endline "LOOKING!";
+                    flush(stdout);
                     (T.simpleVar acc level, actual_ty ty)
             | Some (Env.ExtFunEntry _)
             | Some (Env.FunEntry _) -> impossible "SimpleVar as a FunEntry"
@@ -243,8 +247,12 @@ and transExp (venv, tenv, level, loop, exp) : expty =
             )
      (**************** Assign Expression ****************)
      | A.AssignExp ((var, exp), pos) ->
+             print_endline "Getting var!";
+             flush(stdout);
              let (lexpty, varty) = transVar (venv, tenv, level, loop, var)
              and (rexpty, tyexp) = transExp (venv, tenv, level, loop, exp) in
+             print_endline "Getting done!";
+             flush(stdout);
              checkType tyexp varty "Expression has different type than variable" pos;
              (T.assignExp lexpty rexpty, Types.UNIT)
      (**************** While Expression ****************)
@@ -358,12 +366,16 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label 
             (* Process the function "headers" first *)
             let msg ty = "Type " ^ (S.name ty) ^ " does not exist in this scope" in
             let fieldtypes lst =
+                print_endline "Getting field types";
                 let (slst, tlst) = (List.fold_left 
                     (fun (slst, tlst) ((sym, _, ty), pos : 'a A.field) -> 
                         let ty = lookup_ty tenv ty pos (msg ty) in
                         (sym :: slst, ty :: tlst)) 
                     ([], []) lst)
-                in (List.rev slst, List.rev tlst)
+                in 
+                print_endline "Field types done";
+                flush(stdout);
+                (List.rev slst, List.rev tlst)
             in
             let (venv, _) = List.fold_left 
                 (fun (acc, seen) ((name, fields, result, _), pos : 'a A.fundec) ->
@@ -392,22 +404,35 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label 
             (* Process the function bodies now *)
             let _ = List.iter (fun ((name, fields, result, body), _ : 'a A.fundec) ->
                     (* Need to introduce all of the formals as variables now *)
+                    print_endline ("Processing body of " ^ (Symbol.name name));
+                flush(stdout);
                     let (slst, tlst) = fieldtypes fields in
+                    print_endline ("0 " ^ (Symbol.name name));
+                flush(stdout);
                     let level = match S.look(venv, name) with 
                         | Some (Env.FunEntry (level, _, _, _)) -> level 
                         | _ -> failwith "ICE" 
                     in
+                    print_endline ("1 " ^ (Symbol.name name));
+                flush(stdout);
                     let venv = 
                         let formals = T.formals level in
                         List.fold_left2 (fun venv (sym, ty) access ->
                             S.enter (venv, sym, Env.VarEntry (access, ty))
                         ) venv (List.combine slst tlst) formals
                     in
+                    print_endline ("2 " ^ (Symbol.name name));
+                    Print_ast.print body;
+                flush(stdout);
                     let (bexp, tybody) = transExp (venv, tenv, level, loop, body) in
+                    print_endline ("3 " ^ (Symbol.name name));
+                flush(stdout);
                     let tyres = match result with
                               | Some (ty, pos) -> lookup_ty tenv ty pos (msg ty)
                               | None -> Types.UNIT
                     in
+                    print_endline ("4 " ^ (Symbol.name name));
+                flush(stdout);
                     checkType tybody tyres "Function body does not match result type" pos;
                     T.procEntryExit level bexp
                 ) lst
