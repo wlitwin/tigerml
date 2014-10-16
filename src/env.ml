@@ -63,6 +63,7 @@ let base_venv level : enventry Symbol.table =
     let tbl = add_builtin tbl   "concat"  (ExtFunEntry (level, Temp.namedlabel "concat", [STRING; STRING], STRING)) in
     let tbl = add_builtin tbl   "not"     (ExtFunEntry (level, Temp.namedlabel "not", [INT], INT)) in
     let tbl = add_builtin tbl   "exit"    (ExtFunEntry (level, Temp.namedlabel "exit", [], UNIT)) in
+    let tbl = add_builtin tbl   "blah"    (ExtFunEntry (level, Temp.namedlabel "blah", [], STRING)) in
     tbl
 ;;
 

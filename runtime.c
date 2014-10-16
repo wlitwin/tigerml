@@ -68,8 +68,8 @@ int stringEqual(struct string *s, struct string *t)
 void print(struct string *s)
 {
     SAVE;
-    int i; unsigned char *p=s->chars;
-    for(i=0;i<s->length;i++,p++) putchar(*p);
+    const unsigned char *p=s->chars;
+    for(int i=0;i<s->length;i++,p++) putchar(*p);
     RESTORE;
 }
 
@@ -94,7 +94,7 @@ struct string *chr(int i)
 {
     SAVE;
     if (i<0 || i>=256) 
-    {printf("chr(%d) out of range\n",i); exit(1);}
+    {printf("chr(%d) out of range\n",i); fflush(stdout); exit(1);}
     RESTORE;
     return consts+i;
 }
@@ -109,6 +109,7 @@ struct string *substring(struct string *s, int first, int n)
     SAVE;
     if (first<0 || first+n>s->length)
     {printf("substring([%d],%d,%d) out of range\n",s->length,first,n);
+        fflush(stdout);
         exit(1);}
     if (n==1) {
         RESTORE;
@@ -151,12 +152,29 @@ int not(int i)
 
 #undef getchar
 
-struct string *getchar_()
+const struct string blah_str = {1, "Z"};
+const struct string* blah()
 {
     SAVE;
-    int i=getc(stdin);
-    if (i==EOF) { RESTORE; return &empty; }
-    else { RESTORE; return consts+i; }
+    printf("WOO!\n");
+    RESTORE;
+    return &blah_str;
+}
+
+//const struct string *getchar_()
+void* getchar_()
+{
+    SAVE;
+
+    // No bug, \n is a character too...
+    const int i=getc(stdin);
+    struct string* ret = &empty;
+    if (i != EOF) { ret = &consts[i]; }
+    //if (i==EOF) { ret = &empty; }
+    //else { ret = &consts[i]; }
+
+    RESTORE;
+    return (void*)ret;
 }
 
 extern int __prog(void);

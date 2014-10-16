@@ -260,8 +260,8 @@ let whileExp cond body lbl_done =
     and cond = unEx cond
     and body = unNx body in
     Nx (T.seq [T.LABEL lbl_test;
-               T.MOVE (T.TEMP tmp_cond, cond);
-               T.CJUMP (T.EQ, T.TEMP tmp_cond, T.CONST 0, lbl_done, lbl_body);
+               (*T.MOVE (T.TEMP tmp_cond, cond);*)
+               T.CJUMP (T.EQ, cond(*T.TEMP tmp_cond*), T.CONST 0, lbl_done, lbl_body);
                T.LABEL lbl_body;
                body;
                T.JUMP (T.NAME lbl_test, [lbl_test]);

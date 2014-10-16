@@ -72,8 +72,6 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | T.CJUMP (op, e1, e2, tlab, flab) ->
                 emit (A.OPER {assem="cmp `s0, `s1"; dst=[]; src=[munchExp e1; munchExp e2]; jump=None});
                 emit (A.OPER {assem=(rel_str op) ^ " " ^ (Symbol.name tlab); dst=[]; src=[]; jump=Some[tlab; flab]})
-        | T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP e1, T.CONST c1)), e2) ->
-                emit (A.OPER {assem="mov [`s0+" ^ (itos c1) ^ "], `s1"; src=[e1; munchExp e2]; dst=[]; jump=None})
         | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c1)), T.CONST c2) ->
                 emit (A.OPER {assem="mov dword [`s0+" ^ (itos c1) ^ "], " ^ (itos c2);
                               dst=[];
@@ -82,6 +80,8 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.OPER {assem="mov dword [`s0+" ^ (itos c1) ^ "], " ^ (Symbol.name l2);
                               dst=[];
                               src=[munchExp e1]; jump=None})
+        | T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP e1, T.CONST c1)), e2) ->
+                emit (A.OPER {assem="mov [`s0+" ^ (itos c1) ^ "], `s1"; src=[e1; munchExp e2]; dst=[]; jump=None})
         | T.MOVE (T.MEM (T.BINOP (T.PLUS, e1, T.CONST c)), e2) ->
                 emit (A.OPER {assem="mov [`s0+" ^ (itos c) ^ "], `s1";
                               src=[munchExp e1; munchExp e2];
