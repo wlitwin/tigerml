@@ -181,5 +181,5 @@ let formals frame : access list =
 ;;
 
 let externalCall (s, args) =
-    T.CALL (T.NAME (Temp.namedlabel s), List.rev args)
+    T.CALL (T.NAME (Temp.namedlabel s), args)
 ;;

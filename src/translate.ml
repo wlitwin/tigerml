@@ -33,7 +33,7 @@ sig
     val breakExp : Temp.label -> exp
     val arrayExp : exp -> exp -> exp
     val callExp : Temp.label -> exp list -> level -> level -> exp
-    val callExtern : Temp.label -> exp list -> level -> level -> exp
+    val callExtern : string -> exp list -> exp
 
     val arithExp : Absyn.oper -> exp -> exp -> exp
     val condExp : Absyn.oper -> exp -> exp -> exp
@@ -278,21 +278,22 @@ let breakExp lbl =
     Nx (T.JUMP (T.NAME lbl, [lbl]))
 ;;
 
-let arrayExp size init =
-    Ex (Frame.externalCall ("initArray", [unEx size; unEx init]))
-;;
-
 (* lof - level of called function *)
 (* locf - level of calling function *)
 let callExp (name : Temp.label) (params : exp list) (lof : level) (locf : level) =
     let params = List.map unEx params in
     (* TODO - calculate static link offset *)
-    Ex (T.CALL (T.NAME name, List.rev ((T.TEMP Frame.fp) :: params)))
+    Ex (T.CALL (T.NAME name, (T.TEMP Frame.fp) :: (List.rev params)))
 ;;
 
-let callExtern (name : Temp.label) (params : exp list) (lof : level) (locf : level) =
+let callExtern (name : string) (params : exp list) =
     let params = List.map unEx params in
-    Ex (T.CALL (T.NAME name, params))
+    (*Ex (T.CALL (T.NAME name, params))*)
+    Ex (Frame.externalCall (name, List.rev params))
+;;
+
+let arrayExp size init =
+    callExtern "initArray" [init; size]
 ;;
 
 let arithExp op expl expr =

@@ -168,7 +168,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
                     and tyright = actual_ty tyright in
                     (match (tyleft, tyright) with
                     | (Types.STRING, Types.STRING) ->
-                            (T.callExtern (Temp.namedlabel "stringEqual") [lexpty; rexpty] level level, Types.INT)
+                            (T.callExtern "stringEqual" [lexpty; rexpty], Types.INT)
                     | (Types.INT, Types.INT)
                     | (Types.NIL, Types.NIL)
                     | (Types.NIL, Types.RECORD _)
@@ -347,8 +347,8 @@ and transExp (venv, tenv, level, loop, exp) : expty =
             let flen = List.length formals 
             and plen = List.length params in
             let rec checkparams acc = function
-                | ([], [], false) -> (T.callExp name (List.rev acc) lvl level, tyresult)
-                | ([], [], true)  -> (T.callExtern name (List.rev acc) lvl level, tyresult)
+                | ([], [], false) -> (T.callExp name acc lvl level, tyresult)
+                | ([], [], true)  -> (T.callExtern (Symbol.name name) acc, tyresult)
                 | (fty :: ftl, p :: ptl, isextern) ->
                     let (pexpty, pty) = transExp (venv, tenv, level, loop, p) in 
                     checkType pty fty "Argument is of the wrong type" (A.getVal p);

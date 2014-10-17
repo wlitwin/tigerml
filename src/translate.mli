@@ -33,7 +33,7 @@ sig
     val breakExp : Temp.label -> exp
     val arrayExp : exp -> exp -> exp
     val callExp : Temp.label -> exp list -> level -> level -> exp
-    val callExtern : Temp.label -> exp list -> level -> level -> exp
+    val callExtern : string -> exp list -> exp
 
     val arithExp : Absyn.oper -> exp -> exp -> exp
     val condExp : Absyn.oper -> exp -> exp -> exp

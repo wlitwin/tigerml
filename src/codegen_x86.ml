@@ -155,7 +155,7 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
         | T.CALL (T.NAME lab, args) ->
                 (* Hack for external C calls *)
                 emit (A.OPER {assem = "CALL " ^ (Symbol.name lab);
-                              src = munchArgs (0, args);
+                              src = munchArgs (0, List.rev args);
                               (* dst should have any registers that get clobbered by
                                * the assem instruction output about *)
                               dst = (*calldefs*)[Frame_x86.eax]; (* registers that get trashed *)
@@ -192,6 +192,13 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
             *)
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
+        | T.BINOP (T.DIV, e1, e2) ->
+            (* EDX:EAX is the full number, result in EAX *)
+            emit (A.OPER {assem="xor `d0, `s0"; src=[Frame_x86.edx]; dst=[Frame_x86.edx]; jump=None});
+            munchStm (T.MOVE (T.TEMP Frame_x86.eax, e1));
+            (*emit (A.MOVE {assem="mov `d0, `s0"; src=munchExp e1; dst=Frame_x86.eax});*)
+            emit (A.OPER {assem="idiv `s0"; src=[munchExp e2; Frame_x86.edx]; dst=[Frame_x86.eax; Frame_x86.edx]; jump=None});
+            Frame_x86.eax
         | T.BINOP (op, e1, e2) -> binopExp (op, e1, e2)
         (*
         | T.BINOP (T.MUL, e1, e2) ->

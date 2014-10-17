@@ -131,18 +131,33 @@ struct string *concat(struct string *a, struct string *b)
 {
     SAVE;
 
-    if (a->length==0) { RESTORE; return b; }
-    else if (b->length==0) { RESTORE; return a; }
-    else {int i, n=a->length+b->length;
+    /*
+    printf("STRINGS:\n");
+    print(a);
+    printf("\n");
+    print(b);
+    printf("\nEND STRINGS:\n");
+    */
+
+    struct string* ret = &empty;
+    if (a->length==0) { 
+        ret = b;
+    }
+    else if (b->length==0) { 
+        ret = a; 
+    } else {
+        int i, n=a->length+b->length;
         struct string *t = (struct string *)malloc(sizeof(int)+n);
         t->length=n;
         for (i=0;i<a->length;i++)
             t->chars[i]=a->chars[i];
         for(i=0;i<b->length;i++)
             t->chars[i+a->length]=b->chars[i];
-        RESTORE;
-        return t;
+        ret = t;
     }
+
+    RESTORE;
+    return ret;
 }
 
 int not(int i)
