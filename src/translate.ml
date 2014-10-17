@@ -287,7 +287,7 @@ let arrayExp size init =
 let callExp (name : Temp.label) (params : exp list) (lof : level) (locf : level) =
     let params = List.map unEx params in
     (* TODO - calculate static link offset *)
-    Ex (T.CALL (T.NAME name, (T.CONST 0) :: params))
+    Ex (T.CALL (T.NAME name, List.rev ((T.TEMP Frame.fp) :: params)))
 ;;
 
 let callExtern (name : Temp.label) (params : exp list) (lof : level) (locf : level) =

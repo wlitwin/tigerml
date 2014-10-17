@@ -87,6 +87,12 @@ let allocLocal frame escape =
     loc
 ;;
 
+let exp access texp : Tree.exp =
+    match access with
+    | InReg tmp -> T.TEMP tmp
+    | InFrame off -> T.MEM (T.BINOP (T.PLUS, texp, T.CONST off))
+;;
+
 let procEntryExit1 (frame, stm) =
     print_endline "==== FORMALS ====";
     List.iter (fun loc ->
@@ -94,26 +100,31 @@ let procEntryExit1 (frame, stm) =
         | InReg reg -> print_endline (string_of_temp reg)
         | InFrame offset -> print_endline ("Frame: " ^ (string_of_int offset))
     ) frame.formals;
+    (* Allocate locals for saved regs *)
+    let ebxLoc = allocLocal frame true
+    and ecxLoc = allocLocal frame true
+    and edxLoc = allocLocal frame true in
     let numLocals = List.length !(frame.locals) in
     let lst = [
             T.LABEL frame.label;
             (* Save all registers *)
             T.MOVE (T.TEMP ebp, T.TEMP esp);
-            T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-4)), T.TEMP ebx);
-            T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-8)), T.TEMP ecx);
-            T.MOVE (T.MEM (T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-12)), T.TEMP edx);
-            T.MOVE (T.TEMP esp, T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-12));
-        ] @ 
-        (if numLocals > 0 then
-            (* Create space for locals *)
-            [T.MOVE (T.TEMP esp, T.BINOP (T.PLUS, T.TEMP esp, T.CONST (-4*numLocals)))]
-        else [])
+        ] @
+            (if numLocals > 0 then
+                (* Create space for locals *)
+                [T.MOVE (T.TEMP esp, T.BINOP (T.PLUS, T.TEMP esp, T.CONST (-4*numLocals)))]
+            else [])
+        @ [
+            T.MOVE (exp ebxLoc (T.TEMP ebp), T.TEMP ebx);
+            T.MOVE (exp ecxLoc (T.TEMP ebp), T.TEMP ecx);
+            T.MOVE (exp edxLoc (T.TEMP ebp), T.TEMP edx);
+        ]
         (* Restore all registers, except eax *)
         @ [stm] @ [
             T.MOVE (T.TEMP esp, T.TEMP ebp);
-            T.MOVE (T.TEMP ebx, T.MEM (T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-4)));
-            T.MOVE (T.TEMP ecx, T.MEM (T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-8)));
-            T.MOVE (T.TEMP edx, T.MEM (T.BINOP (T.PLUS, T.TEMP esp, T.CONST ~-12)));
+            T.MOVE (T.TEMP ebx, exp ebxLoc (T.TEMP ebp));
+            T.MOVE (T.TEMP ecx, exp ecxLoc (T.TEMP ebp));
+            T.MOVE (T.TEMP edx, exp edxLoc (T.TEMP ebp));
         ]
     in
     T.seq lst
@@ -153,11 +164,11 @@ let newFrame label escapes =
             )
     in
     let formals = 
-        build_formals num_reg_params 4 [] escapes 
+        build_formals num_reg_params 8 [] escapes 
     in
     { label;
       locals = ref [];
-      local_offset = ref ~-16;
+      local_offset = ref ~-4;
       formals }
 ;;
 
@@ -167,12 +178,6 @@ let name frame =
 
 let formals frame : access list =
     frame.formals
-;;
-
-let exp access texp : Tree.exp =
-    match access with
-    | InReg tmp -> T.TEMP tmp
-    | InFrame off -> T.MEM (T.BINOP (T.PLUS, texp, T.CONST off))
 ;;
 
 let externalCall (s, args) =
