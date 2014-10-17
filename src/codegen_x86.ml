@@ -139,6 +139,11 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.MOVE {assem="mov `d0, `s0"; dst=r; src=e1});
                 emit (A.OPER {assem=opstr ^ " `d0, " ^ (itos c2); dst=[r]; src=[r]; jump=None})
             )
+            (*
+        | (T.TEMP e1, T.MEM (T.BINOP (T.PLUS, T.TEMP e2, T.CONST c2))) ->
+                emit (A.OPER {assem=opstr ^ " `d0, [`s0+" ^ (itos c2) ^ "]"; dst=[e1]; src=[e2]; jump=None});
+                e1
+                *)
         | (e1, e2) ->
             result (fun r ->
                 let e2 = munchExp e2
@@ -192,12 +197,17 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
             *)
         | T.CONST i -> result (fun r ->
             emit (A.OPER {assem="mov `d0, " ^ (itos i); src=[]; dst=[r]; jump=None}))
+        | T.BINOP (T.DIV, e1, T.MEM (T.BINOP (T.PLUS, T.TEMP e2, T.CONST c2))) ->
+            emit (A.OPER {assem="xor `d0, `s0"; src=[Frame_x86.edx]; dst=[Frame_x86.edx]; jump=None});
+            munchStm (T.MOVE (T.TEMP Frame_x86.eax, e1));
+            emit (A.OPER {assem="idiv dword [`s0+" ^ (itos c2) ^ "]"; src=[e2; Frame_x86.eax; Frame_x86.edx]; dst=[Frame_x86.eax; Frame_x86.edx]; jump=None});
+            Frame_x86.eax
         | T.BINOP (T.DIV, e1, e2) ->
             (* EDX:EAX is the full number, result in EAX *)
             emit (A.OPER {assem="xor `d0, `s0"; src=[Frame_x86.edx]; dst=[Frame_x86.edx]; jump=None});
             munchStm (T.MOVE (T.TEMP Frame_x86.eax, e1));
             (*emit (A.MOVE {assem="mov `d0, `s0"; src=munchExp e1; dst=Frame_x86.eax});*)
-            emit (A.OPER {assem="idiv `s0"; src=[munchExp e2; Frame_x86.edx]; dst=[Frame_x86.eax; Frame_x86.edx]; jump=None});
+            emit (A.OPER {assem="idiv `s0"; src=[munchExp e2; Frame_x86.edx; Frame_x86.eax]; dst=[Frame_x86.eax; Frame_x86.edx]; jump=None});
             Frame_x86.eax
         | T.BINOP (op, e1, e2) -> binopExp (op, e1, e2)
         (*
