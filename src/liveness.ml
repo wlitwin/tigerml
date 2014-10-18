@@ -139,8 +139,7 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
             let live = FGI.look_exn liveOutSet n in
             ST.iter (fun d ->
                 let dn = getNode d in
-                (*
-                let uses = FGI.look_exn fgraph.use dn in
+(*                let uses = FGI.look_exn fgraph.use dn in
                 let defs = FGI.look_exn fgraph.def dn in
     *)
                 ST.iter (fun temp ->
@@ -152,7 +151,8 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
                             Graph.mk_edge {from = dn; to_ = tn};
                             Graph.mk_edge {from = tn; to_ = dn}
                         )
-                    end else begin*)
+                    end else begin
+                        *)
                         Graph.mk_edge {from = dn; to_ = tn};
                         Graph.mk_edge {from = tn; to_ = dn}
                     (*end*)

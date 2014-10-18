@@ -282,8 +282,16 @@ let breakExp lbl =
 (* locf - level of calling function *)
 let callExp (name : Temp.label) (params : exp list) (lof : level) (locf : level) =
     let params = List.map unEx params in
+    let static_link =
+        if lof.uniq == locf.uniq then
+            (* Reuse it, this is a recursive call *)
+            Frame.exp (List.hd (Frame.formals lof.frame)) (T.TEMP Frame.fp)
+        else
+            (* Pass our context *)
+            T.TEMP (Frame.fp)
+    in
     (* TODO - calculate static link offset *)
-    Ex (T.CALL (T.NAME name, (T.TEMP Frame.fp) :: (List.rev params)))
+    Ex (T.CALL (T.NAME name, static_link :: (List.rev params)))
 ;;
 
 let callExtern (name : string) (params : exp list) =

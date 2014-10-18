@@ -404,36 +404,23 @@ and transDec (venv, tenv, level, loop, dec : venv * tenv * T.level * Temp.label 
             (* Process the function bodies now *)
             let _ = List.iter (fun ((name, fields, result, body), _ : 'a A.fundec) ->
                     (* Need to introduce all of the formals as variables now *)
-                    print_endline ("Processing body of " ^ (Symbol.name name));
-                flush(stdout);
                     let (slst, tlst) = fieldtypes fields in
-                    print_endline ("0 " ^ (Symbol.name name));
-                flush(stdout);
                     let level = match S.look(venv, name) with 
                         | Some (Env.FunEntry (level, _, _, _)) -> level 
                         | _ -> failwith "ICE" 
                     in
-                    print_endline ("1 " ^ (Symbol.name name));
-                flush(stdout);
                     let venv = 
                         let formals = T.formals level in
                         List.fold_left2 (fun venv (sym, ty) access ->
                             S.enter (venv, sym, Env.VarEntry (access, ty))
                         ) venv (List.combine slst tlst) formals
                     in
-                    print_endline ("2 " ^ (Symbol.name name));
-                    Print_ast.print body;
-                flush(stdout);
                     let (bexp, tybody) = transExp (venv, tenv, level, loop, body) in
-                    print_endline ("3 " ^ (Symbol.name name));
-                flush(stdout);
                     let tyres = match result with
                               | Some (ty, pos) -> lookup_ty tenv ty pos (msg ty)
                               | None -> Types.UNIT
                     in
-                    print_endline ("4 " ^ (Symbol.name name));
-                flush(stdout);
-                    checkType tybody tyres "Function body does not match result type" pos;
+                    checkType tybody tyres ("Function " ^ (Symbol.name name) ^ "'s body does not match result type") pos;
                     T.procEntryExit level bexp
                 ) lst
             in

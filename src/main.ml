@@ -18,28 +18,6 @@ open Gcolor
 module A = Assem
 
 let genProgram (fragList : Fx86.frag list) : unit =
-    (*SEQ(
-        * ---+---+MOVE(
-            * ---+---+-TEMP t0,
-            * ---+---+-ESEQ(
-                * ---+---+--MOVE(
-                    * ---+---+---MEM(
-                        * ---+---+---+BINOP(PLUS,
-                        * ---+---+---+-TEMP t5,
-                        * ---+---+---+-CONST -16)),
-                        * ---+---+---CONST 12),
-                        * ---+---+--ESEQ(
-                            * ---+---+---MOVE(
-                                * ---+---+---+MEM(
-                                    * ---+---+---+-BINOP(PLUS,
-                                    * ---+---+---+--TEMP t5,
-                                    * ---+---+---+--CONST -16)),
-                                    * ---+---+---+CALL(
-                                        * ---+---+---+-NAME L1,
-                                        * ---+---+---+--CONST 0,
-                                        * ---+---+---+--CONST 20)),
-                                        * ---+---+---CONST 0))),
-                                        * *)
     (*
     let module T = Tree in
     let t1 = Temp.newtemp()

@@ -61,6 +61,24 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                               dst=munchExp e1;
                               src=munchExp e2})
                               *)
+        (* MOVE(
+         * -MEM(
+         * --BINOP(PLUS,
+         * ---MEM(
+         * ---+BINOP(PLUS,
+         * ---+-TEMP t5,
+         * ---+-CONST -4)),
+         * ---BINOP(MUL,
+         * ---+MEM(
+         * ---+-BINOP(PLUS,
+         * ---+--TEMP t5,
+         * ---+--CONST -16)),
+         * ---+CONST 4))),
+         * -MEM(
+         * --BINOP(PLUS,
+         * ---TEMP t5,
+         * ---CONST -16)))
+         *)
         (* Munch sources before destinations *)
         | T.CJUMP (op, T.CONST c1, T.CONST c2, tlab, flab) ->
                 let temp = T.TEMP (Temp.newtemp()) in
@@ -86,10 +104,6 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.OPER {assem="mov [`s0+" ^ (itos c) ^ "], `s1";
                               src=[munchExp e1; munchExp e2];
                               dst=[]; jump=None})
-        | T.MOVE (e1, (T.MEM (T.BINOP (T.PLUS, e2, T.CONST c)))) ->
-                emit (A.MOVE {assem="mov `d0, [`s0+" ^ (itos c) ^ "]";
-                              src=munchExp e2;
-                              dst=munchExp e1})
         | T.MOVE (T.TEMP e1, T.BINOP (T.PLUS, T.TEMP e2, T.CONST c2)) when e1 = e2 ->
                 emit (A.OPER {assem="add `d0, " ^ (itos c2); dst=[e1]; src=[e1]; jump=None})
         | T.MOVE (T.TEMP e1, T.BINOP (T.PLUS, T.TEMP e2, T.CONST c2)) ->
@@ -101,6 +115,10 @@ let codegen (frame : Frame_x86.frame) (stm : Tree.stm) : Assem.instr list =
                 emit (A.OPER {assem="mov `d0, " ^ (itos i);
                               dst=[munchExp e1];
                               src=[]; jump=None})
+        | T.MOVE (e1, (T.MEM (T.BINOP (T.PLUS, e2, T.CONST c)))) ->
+                emit (A.MOVE {assem="mov `d0, [`s0+" ^ (itos c) ^ "]";
+                              src=munchExp e2;
+                              dst=munchExp e1})
         | T.MOVE (e1, e2) ->
                 emit (A.MOVE {assem="mov `d0, `s0"; src=munchExp e2; dst=munchExp e1})
         | T.LABEL lab ->
