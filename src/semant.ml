@@ -316,7 +316,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
             (* Generate code for assignments *)
             let body = A.SeqExp (body, pos) in
             let (bexp, bexpty) = transExp (venv, tenv, level, loop, body) in
-            (T.seqExp (vexps @ [bexp]), bexpty)
+            (T.seqExp ((List.rev vexps) @ [bexp]), bexpty)
      (**************** Array Expression ****************)
      | A.ArrayExp ((tyarr, size, init), pos) ->
             let tyarr = lookup_ty tenv tyarr pos 
