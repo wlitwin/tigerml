@@ -16,8 +16,9 @@
 int *initArray(int size, int init)
 {
     SAVE;
-    printf("ARRAY [%d] of %d\n", size, init);
+    //printf("ARRAY [%d] of %d\n", size, init);
     int i;
+    //size++; // Store length in first slot
     int *a = (int *)malloc(size*sizeof(int));
     for(i=0;i<size;i++) a[i]=init;
     RESTORE;

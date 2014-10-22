@@ -301,6 +301,7 @@ let callExtern (name : string) (params : exp list) =
 ;;
 
 let arrayExp size init =
+    (* Put the size of the array in slot#1*)
     callExtern "initArray" [init; size]
 ;;
 

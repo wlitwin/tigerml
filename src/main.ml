@@ -81,7 +81,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
             print_endline "--- LIVENESS IGRAPH ----";
             Liveness.show (stdout, igraph);
             print_endline "--- GRAPH COLORING ----";
-            let (cgraph, colors : Liveness.Graph.graph * int Temp.ITable.table) = Gcolor.color igraph Fx86.precolored Fx86.numRegisters in
+            let (cgraph, colors : Liveness.Graph.graph * int Temp.ITable.table) = Gcolor.color igraph instr Fx86.precolored Fx86.numRegisters in
             (*Liveness.Graph.show cgraph; *)
             print_endline "--- COLORS ---";
             (*
@@ -102,9 +102,10 @@ let genProgram (fragList : Fx86.frag list) : unit =
                 | OPER {assem; dst; src; jump} ->
                         Some (OPER {assem; dst=List.map replaceTemp dst; src=List.map replaceTemp src; jump})
                 | MOVE {assem; dst; src} ->
-                        let newDst = replaceTemp dst
+                        (*let newDst = replaceTemp dst
                         and newSrc = replaceTemp src in
                         (*if newDst = newSrc then None
+                         * *)
                         else*) Some (MOVE {assem; dst=replaceTemp dst; src=replaceTemp src})
                 | _ -> Some instr
             in

@@ -135,29 +135,40 @@ let interferenceGraph (fgraph : Flowgraph.flowgraph) : igraph * ST.t FG.ITable.t
         in
         List.iter (fun n ->
             (* TODO - check if it's a move and don't add interference for specific temporary *)
+            (* a move instruction a <- c only put an edge 
+             * from for all live out nodes that are not c.
+             * a = def, c = use
+             *)
             let def = ST.of_list (FGI.look_exn fgraph.def n) in
             let live = FGI.look_exn liveOutSet n in
-            ST.iter (fun d ->
-                let dn = getNode d in
-(*                let uses = FGI.look_exn fgraph.use dn in
-                let defs = FGI.look_exn fgraph.def dn in
-    *)
-                ST.iter (fun temp ->
-                    let tn = getNode temp in
-                    (*
-                    let ismove = FGI.look_exn fgraph.ismove dn in
-                    if ismove then begin
-                        if not (List.mem temp uses) then (
-                            Graph.mk_edge {from = dn; to_ = tn};
-                            Graph.mk_edge {from = tn; to_ = dn}
-                        )
-                    end else begin
-                        *)
+            (*if FGI.look_exn fgraph.ismove n then (
+                let use = ST.of_list (FGI.look_exn fgraph.use n) in
+                if ST.cardinal def != 1 then failwith "Expected only one def";
+                if ST.cardinal use != 1 then failwith "Expected only one use";
+                let a : Temp.temp = ST.choose def in
+                let c : Temp.temp = ST.choose use in
+                print_endline ("Move " ^ (Frame_x86.string_of_temp a) ^ " <- " ^ (Frame_x86.string_of_temp c));
+                let an = getNode a in
+                ST.iter (fun bj ->
+                    if not (bj = c) then (
+                        let bn = getNode bj in
+                        print_endline ("Edge: " ^ (Frame_x86.string_of_temp a) ^ " to " ^ (Frame_x86.string_of_temp bj));
+                        Graph.mk_edge {from = an; to_ = bn};
+                        Graph.mk_edge {from = bn; to_ = an}
+                    )
+                ) live;
+            ) else (
+                *)
+                ST.iter (fun d ->
+                    let dn = getNode d in
+                    ST.iter (fun temp ->
+                        let tn = getNode temp in
+                        print_endline ("Edge NM: " ^ (Frame_x86.string_of_temp d) ^ " to " ^ (Frame_x86.string_of_temp temp));
                         Graph.mk_edge {from = dn; to_ = tn};
                         Graph.mk_edge {from = tn; to_ = dn}
-                    (*end*)
-                ) live;
-            ) def;
+                    ) live;
+                ) def;
+            (*)*)
         ) nodes;
         (g, tempToNode, nodeToTemp)
     in

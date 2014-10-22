@@ -47,7 +47,7 @@ module SC = Set.Make(struct type t = int let compare = compare end)
 
 type precolored = unit TI.table
 
-let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int) : (LG.graph * int TI.table) =
+let color (igraph : Liveness.igraph) (instrs : Assem.instr list) (precoloring : precolored) (numColors : int) : (LG.graph * int TI.table) =
     let open Liveness in
     d_print_endline "~~~~ ORIG GRAPH ~~~~";
     (*LG.show igraph.graph;*)
@@ -155,6 +155,47 @@ let color (igraph : Liveness.igraph) (precoloring : precolored) (numColors : int
                 (* Remake the liveness graph *)
                 (* Redo coloring *)
                 print_endline ("Couldn't color: " ^ (Frame_x86.string_of_temp (LGI.look_exn igraph.gtemp node)));
+                let tempColorings : color TI.table =
+                    let tbl = TI.empty () in
+                    let nodes = LG.nodes orig_graph in
+                    List.iter (fun n ->
+                        match (LGI.look(igraph.gtemp, n), LGI.look(nodeColors, n)) with
+                        | (Some n, Some c) ->
+                            TI.enter(tbl, n, c) (*LGI.look_exn igraph.gtemp n, LGI.look_exn nodeColors n)*)
+                        | _ -> ()
+                    ) nodes;
+                    tbl
+                in
+                let replaceTemp t =
+                    match Temp.ITable.look(tempColorings, t) with
+                    | Some color -> color
+                    | None -> t
+                in
+                let makeNewInstr instr =
+                    let open Assem in
+                    match instr with
+                    | OPER {assem; dst; src; jump} ->
+                            Some (OPER {assem; dst=List.map replaceTemp dst; src=List.map replaceTemp src; jump})
+                    | MOVE {assem; dst; src} ->
+                            let newDst = replaceTemp dst
+                            and newSrc = replaceTemp src in
+                            (*if newDst = newSrc then None
+                            else*) Some (MOVE {assem; dst=replaceTemp dst; src=replaceTemp src})
+                    | _ -> Some instr
+                in
+                let newInstrList = 
+                    List.fold_left (fun acc i ->
+                        match makeNewInstr i with
+                        | Some i -> i :: acc
+                        | None -> acc
+                    ) [] instrs
+                    |> List.rev
+                in
+                List.iter (fun i ->
+                    let str = Assem.format Frame_x86.string_of_temp i in
+                    print_endline str;
+                ) newInstrList;
+                (* Print partially colored instructions *)
                 raise (Failure "Optimistic Spill Failure")
                 (*LGI.enter(nodeColors, newNode, 0)*)
         done;
