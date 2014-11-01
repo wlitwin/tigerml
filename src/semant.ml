@@ -268,7 +268,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
             (* TODO - Make sure var is not assigned to in the body *)
             (* TODO - Rewrite as a while loop *)
              let vlo = var
-             and vhi = S.symbol "limit" in
+             and vhi = S.symbol ("limit" ^ (Temp.makestring (Temp.newtemp()))) in
              let vlo_exp = A.SimpleVar (vlo, pos)
              and vhi_exp = A.SimpleVar (vhi, pos) in
              let inc_exp = A.OpExp ((A.VarExp (vlo_exp, pos), A.PlusOp, A.IntExp (1, pos)), pos) in

@@ -3,13 +3,14 @@ module T = Tree
 type location = InReg of Temp.temp | InFrame of int
 
 let wordsize = 4
-let numRegisters = 7
+let numRegisters = 8
 let eax = Temp.newtemp ()
 let ebx = Temp.newtemp ()
 let ecx = Temp.newtemp ()
 let edx = Temp.newtemp ()
 let esp = Temp.newtemp ()
 let esi = Temp.newtemp ()
+let edi = Temp.newtemp ()
 let ebp = Temp.newtemp ()
 
 let fp = ebp
@@ -49,6 +50,7 @@ let precolored =
     Temp.ITable.enter (colors, edx, ());
     Temp.ITable.enter (colors, ebp, ());
     Temp.ITable.enter (colors, esi, ());
+    Temp.ITable.enter (colors, edi, ());
     Temp.ITable.enter (colors, esp, ());
     colors
 ;;
@@ -61,6 +63,7 @@ let tempMap : register Temp.ITable.table =
     Temp.ITable.enter (sym, edx, "edx");
     Temp.ITable.enter (sym, ebp, "ebp");
     Temp.ITable.enter (sym, esi, "esi");
+    Temp.ITable.enter (sym, edi, "edi");
     Temp.ITable.enter (sym, esp, "esp");
     sym
 ;;
@@ -107,7 +110,8 @@ let procEntryExit1 (frame, stm) =
     let ebxLoc = allocLocal frame true
     and ecxLoc = allocLocal frame true
     and edxLoc = allocLocal frame true 
-    and esiLoc = allocLocal frame true in
+    and esiLoc = allocLocal frame true
+    and ediLoc = allocLocal frame true in
     let numLocals = List.length !(frame.locals) in
     let lst = [
             T.LABEL frame.label;
@@ -122,7 +126,8 @@ let procEntryExit1 (frame, stm) =
             T.MOVE (exp ebxLoc (T.TEMP ebp), T.TEMP ebx);
             T.MOVE (exp ecxLoc (T.TEMP ebp), T.TEMP ecx);
             T.MOVE (exp edxLoc (T.TEMP ebp), T.TEMP edx);
-            T.MOVE (exp edxLoc (T.TEMP ebp), T.TEMP esi);
+            T.MOVE (exp esiLoc (T.TEMP ebp), T.TEMP esi);
+            T.MOVE (exp ediLoc (T.TEMP ebp), T.TEMP edi);
         ]
         (* Restore all registers, except eax *)
         @ [stm] @ [
@@ -130,7 +135,8 @@ let procEntryExit1 (frame, stm) =
             T.MOVE (T.TEMP ebx, exp ebxLoc (T.TEMP ebp));
             T.MOVE (T.TEMP ecx, exp ecxLoc (T.TEMP ebp));
             T.MOVE (T.TEMP edx, exp edxLoc (T.TEMP ebp));
-            T.MOVE (T.TEMP esi, exp edxLoc (T.TEMP ebp));
+            T.MOVE (T.TEMP esi, exp esiLoc (T.TEMP ebp));
+            T.MOVE (T.TEMP edi, exp ediLoc (T.TEMP ebp));
         ]
     in
     T.seq lst

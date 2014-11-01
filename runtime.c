@@ -3,15 +3,19 @@
 #include <stdlib.h>
 
 #define SAVE \
-    unsigned int old_ebx, old_ecx, old_edx; \
+    unsigned int old_ebx, old_ecx, old_edx, old_esi, old_edi; \
     __asm__ volatile ("\t movl %%ebx,%0" : "=r"(old_ebx)); \
     __asm__ volatile ("\t movl %%ecx,%0" : "=r"(old_ecx)); \
     __asm__ volatile ("\t movl %%edx,%0" : "=r"(old_edx)); \
+    __asm__ volatile ("\t movl %%esi,%0" : "=r"(old_esi)); \
+    __asm__ volatile ("\t movl %%edi,%0" : "=r"(old_edi)); \
 
 #define RESTORE \
     __asm__ volatile ("\t movl %0, %%ebx" :: "r"(old_ebx)); \
     __asm__ volatile ("\t movl %0, %%ecx" :: "r"(old_ecx)); \
     __asm__ volatile ("\t movl %0, %%edx" :: "r"(old_edx)); \
+    __asm__ volatile ("\t movl %0, %%esi" :: "r"(old_esi)); \
+    __asm__ volatile ("\t movl %0, %%edi" :: "r"(old_edi)); \
 
 int *initArray(int size, int init)
 {
