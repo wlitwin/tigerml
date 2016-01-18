@@ -1,0 +1,9 @@
+let
+    type rec = {a:int, b:string}
+    var i := rec {a=987654321, b="HELLO "}
+    var b := rec {a=123456789, b="WORLD\n"}
+in
+    print(i.b);
+    print(b.b);
+    i.a + b.a
+end

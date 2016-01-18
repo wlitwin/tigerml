@@ -1,0 +1,8 @@
+let
+    function fact (i : int) : int = 
+        if i <= 0 then 1
+        else
+            i*fact(i-1)
+in
+    fact(10)
+end

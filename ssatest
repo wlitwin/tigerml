@@ -1,0 +1,5 @@
+let
+var a := 10
+in
+if 1 then a := 20 else a := 40
+end

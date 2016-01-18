@@ -1,0 +1,61 @@
+let
+    type intlist = {hd: int, tail: intlist}
+    type strlist = {hd: string, tail: strlist}
+
+    function mod(a : int, n : int) : int =
+        a - n*(a/n)
+
+    function div(a : int, b : int) : int =
+        a / b
+
+    function itos(i : int) : string =
+        let
+            var div10 := i / 10
+            var mod10 := mod(i, 10)
+        in
+            if div10 <= 0 then chr(mod10 + ord("0"))
+            else concat(itos(div10), chr(mod10 + ord("0")))
+        end
+
+    function isdigit(s : string) : int =
+        ord(s) >= ord("0") & ord(s) <= ord("9")
+         
+    function append(lst : strlist, str : string) : strlist =
+        if lst = nil then 
+            strlist {hd=str, tail=nil}
+        else if lst.tail = nil then (
+            lst.tail := strlist {hd=str, tail=nil};
+            lst
+        ) else (
+            append(lst.tail, str);
+            lst
+        )
+
+    function printlst(s : strlist) =
+        if s = nil then print("")
+        else (
+            print(s.hd);
+            printlst(s.tail)
+        )
+
+    function readnumber() : strlist =
+        let
+            var i := getchar()
+            var lst : strlist := nil
+        in
+            while i = " " | i = "\n" do (
+                i := getchar()
+            );
+            while isdigit(i) do (
+                lst := append(lst, i);
+                i := getchar()
+            );
+            lst
+        end
+
+    var num := readnumber()
+in
+    print(itos(123)); print("\n");
+    printlst(num); print("\n");
+    10
+end

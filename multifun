@@ -1,0 +1,8 @@
+let
+    function pstr(a:string, b:string) = (
+        print(a);
+        print(b)
+    )
+in
+    pstr("A", "B"); print("\n")
+end

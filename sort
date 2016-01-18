@@ -1,0 +1,163 @@
+let
+    type arr = array of int
+    type strlist = {hd: string, tail: strlist}
+
+    var N := 1000
+    var numbers := arr [N] of 0
+
+    function mod(a : int, n : int) : int =
+        a - n*(a/n)
+
+    function isdigit(s : string) : int =
+        ord(s) >= ord("0") & ord(s) <= ord("9")
+
+    function todigit(s : string) : int =
+        ord(s) - ord("0")
+
+    function readnumber() : strlist =
+        let
+            var i := getchar()
+            var lst : strlist := nil
+        in
+            while i = " " | i = "\n" | i = "\t" do (
+                i := getchar()
+            );
+            while isdigit(i) do (
+                lst := append(lst, i);
+                i := getchar()
+            );
+            lst
+        end
+
+    function lstToNum(lst : strlist) : int =
+        let
+            var pow := 1
+
+            function recurse(lst: strlist) : int =
+                let 
+                    var num := 0 
+                    var temp := 0 
+                in
+                    if lst = nil then (
+                        0 
+                    ) else (
+                        num := recurse(lst.tail);
+                        temp := todigit(lst.hd)*pow;
+                        pow := pow * 10;
+                        temp + num
+                    )
+                end
+        in
+            recurse(lst)
+        end
+
+    function itos(i : int) : string =
+        let
+            var div10 := i / 10
+            var mod10 := mod(i, 10)
+        in
+            if div10 <= 0 then chr(mod10 + ord("0"))
+            else concat(itos(div10), chr(mod10 + ord("0")))
+        end
+
+    function append(lst : strlist, str : string) : strlist =
+        if lst = nil then 
+            strlist {hd=str, tail=nil}
+        else if lst.tail = nil then (
+            lst.tail := strlist {hd=str, tail=nil};
+            lst
+        ) else (
+            append(lst.tail, str);
+            lst
+        )
+
+    function merge(arr1: arr, arr2: arr, len1: int, len2: int) : arr =
+        let
+            var lentotal := len1+len2
+            var out := arr [lentotal] of 0
+            var idx1 := 0
+            var idx2 := 0
+            var idxo := 0
+        in
+            for i:=0 to lentotal-1 do (
+                if idx1 >= len1 then (
+                    out[idxo] := arr2[idx2];
+                    idx2 := idx2 + 1
+                ) else if idx2 >= len2 then (
+                    out[idxo] := arr1[idx1];
+                    idx1 := idx1 + 1
+                );
+                idxo := idxo + 1
+            );
+            out
+        end
+
+    function concatArray(arr1: arr, arr2: arr, len1: int, len2: int, middle: int) : arr =
+        let
+            var out := arr [len1+len2+1] of 0
+            var idxo := len1
+        in
+            for i:=0 to len1-1 do (
+                out[i] := arr1[i]
+            );
+            out[idxo] := middle;
+            idxo := idxo + 1;
+            for i:=0 to len2-1 do (
+                out[idxo] := arr2[i];
+                idxo := idxo + 1
+            );
+            out
+        end
+
+    function quicksort(arr : arr, len : int) : arr =
+        let
+            var left := arr [len] of 0
+            var right := arr [len] of 0
+            var pivot := arr[len/2]
+            var lidx := 0
+            var ridx := 0
+            var odd := mod(len, 2) = 1
+        in
+            if len <= 1 then 
+                arr
+            else (
+                for i:=0 to len/2-1 do ( 
+                    if arr[i] < pivot then (
+                        left[lidx] := arr[i]; 
+                        lidx := lidx + 1
+                    ) else (
+                        right[ridx] := arr[i];
+                        ridx := ridx + 1
+                    )
+                );
+                for i:=len/2+1 to len-1 do ( 
+                    if arr[i] < pivot then (
+                        left[lidx] := arr[i]; 
+                        lidx := lidx + 1
+                    ) else (
+                        right[ridx] := arr[i];
+                        ridx := ridx + 1
+                    )
+                );
+                left := quicksort(left, lidx);
+                right := quicksort(right, ridx);
+                concatArray(left, right, lidx, ridx, pivot)
+            )
+        end
+
+    var num := 0
+    var nlst : strlist := nil
+
+in
+    for i:=0 to N-1 do (
+        nlst := readnumber();
+        num := lstToNum(nlst);
+        numbers[i] := num
+    );
+    numbers := quicksort(numbers, N);
+    print("\nOutput\n");
+    for i:=0 to N-1 do (
+        print(itos(numbers[i])); print(" ")
+    );
+    print("\n")
+end

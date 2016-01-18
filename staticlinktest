@@ -1,0 +1,18 @@
+let
+    var i := "Hello World!\n"
+    function access(z : int, q: int) : int =
+        let
+            var a := 10
+            var j := "Awesome!\n"
+            function access2() = (
+                print(i);
+                print(j);
+                a := a + 50
+            )
+        in
+            access2();
+            a
+        end
+in
+    access(10, 20)
+end

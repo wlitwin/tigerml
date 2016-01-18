@@ -1,0 +1,8 @@
+let
+  var i := 10
+in
+ while i > 0 do (
+    print("A\n");
+    i := i - 1
+ )
+end

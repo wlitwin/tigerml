@@ -1,0 +1,18 @@
+let
+    var i := 0
+
+    function echo() =
+        let
+            var c := getchar()
+        in
+            while c = "\n" do
+                c := getchar()
+            ;
+            print(c); print("\n")
+        end
+in
+    while i < 10 do (
+        echo();
+        i := i + 1
+    )
+end

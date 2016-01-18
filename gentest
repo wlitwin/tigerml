@@ -1,0 +1,6 @@
+let
+ type rec = {a:int}
+ var i := "ABC"
+in
+ print("10")
+end

@@ -45,6 +45,12 @@ let dummy_pos = (-1, -1)
 exception Error
 exception Impossible
 
+let var_num = ref 0
+let unique_var () =
+    incr var_num;
+    "$" ^ string_of_int !var_num
+;;
+
 let is_some = function 
     | Some _ -> true
     | _ -> false
@@ -268,7 +274,7 @@ and transExp (venv, tenv, level, loop, exp) : expty =
             (* TODO - Make sure var is not assigned to in the body *)
             (* TODO - Rewrite as a while loop *)
              let vlo = var
-             and vhi = S.symbol ("limit" ^ (Temp.makestring (Temp.newtemp()))) in
+             and vhi = S.symbol (unique_var())(* "limit" ^ (Temp.makestring (Temp.newtemp())))*) in
              let vlo_exp = A.SimpleVar (vlo, pos)
              and vhi_exp = A.SimpleVar (vhi, pos) in
              let inc_exp = A.OpExp ((A.VarExp (vlo_exp, pos), A.PlusOp, A.IntExp (1, pos)), pos) in

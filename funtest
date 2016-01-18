@@ -1,0 +1,7 @@
+let
+  function blah(i : int) : int = i
+  var i := 12
+in
+  i := blah(20);
+  i
+end

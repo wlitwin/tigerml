@@ -1,0 +1,8 @@
+let
+    function blah(one:string, two:string) : int = (
+        print(two);
+        10
+    )
+in
+    blah("A", "B")
+end

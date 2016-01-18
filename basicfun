@@ -1,0 +1,5 @@
+let
+function z(i:int) : int = i
+in
+z(1)
+end

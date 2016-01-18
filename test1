@@ -1,0 +1,13 @@
+let
+function blah (i : int) : int =
+    let var z := 10 
+        var x := 20 
+        var y := 0
+        var w := 0
+    in
+        i + z + x + y * w + (i*20)
+    end
+in
+print("HELLO WORLD!\n");
+blah(10) + blah(20) + blah(30)
+end
