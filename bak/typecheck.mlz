@@ -1,0 +1,8 @@
+
+type pos = int * int
+type tyinfo = { pos: pos; ty: Types.ty }
+
+module AstIn : (Ast.T with type t := pos)
+module AstOut : (Ast.T with type t := tyinfo)
+
+val typecheck : AstIn.exp -> AstOut.exp option

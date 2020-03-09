@@ -67,7 +67,7 @@ let print_instr = function
                                    " dst: " ^ (Temp.makestring dst))
           
 
-let format saytemp instr =
+let format saytemp instr : bytes =
     let speak (assem, dst, src, jump) =
         let saylab = Symbol.name in
         let rec f = function
@@ -87,5 +87,5 @@ let format saytemp instr =
     match instr with 
     | OPER {assem; dst; src; jump=None} -> speak (assem, dst, src, [])
     | OPER {assem; dst; src; jump=Some j} -> speak (assem, dst, src, j)
-    | LABEL {assem; lab} -> assem
+    | LABEL {assem; lab} -> Bytes.of_string assem
     | MOVE {assem; dst; src} -> speak (assem, [dst], [src], [])

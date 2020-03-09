@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo CLIB
-gcc -std=c99 -m32 -c runtime.c -o lib.o -O0
+gcc -m32 -std=c99 -c runtime.c -o lib.o -O0
 
 echo ASM
 nasm -f elf32 -o prog.o prog.s

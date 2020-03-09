@@ -74,7 +74,7 @@ let genProgram (fragList : Fx86.frag list) : unit =
             List.iteri (fun idx i ->
                (* Assem.print_instr i;*)
                 print_string ((string_of_int idx) ^ " ");
-                print_endline (Assem.format Fx86.string_of_temp i)
+                print_endline (Assem.format Fx86.string_of_temp i |> Bytes.to_string)
             ) instr;
             let (fgraph, nodes) = Makegraph.instrs2graph instr in
             let (igraph, table) = Liveness.interferenceGraph fgraph in
@@ -122,8 +122,8 @@ let genProgram (fragList : Fx86.frag list) : unit =
                 append(result.Fx86.prolog);
             List.iter (fun i ->
                 let str = Assem.format Fx86.string_of_temp i in
-                print_endline str;
-                append (str);
+                print_endline Bytes.(to_string str);
+                append (str |> Bytes.to_string);
             ) result.Fx86.body;
             print_endline result.Fx86.epilog;
                 append(result.Fx86.epilog);

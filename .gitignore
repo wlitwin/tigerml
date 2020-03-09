@@ -1,0 +1,9 @@
+_build/**
+**/*.merlin
+**/*.native
+**/*.byte
+**/*.s
+**/*.o
+**/*.oz
+output
+prog

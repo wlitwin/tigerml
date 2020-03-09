@@ -193,7 +193,7 @@ let color (igraph : Liveness.igraph) (instrs : Assem.instr list) (precoloring : 
                 in
                 List.iter (fun i ->
                     let str = Assem.format Frame_x86.string_of_temp i in
-                    print_endline str;
+                    print_endline Bytes.(to_string str);
                 ) newInstrList;
                 (* Print partially colored instructions *)
                 raise (Failure "Optimistic Spill Failure")
